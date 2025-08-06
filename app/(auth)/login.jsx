@@ -12,14 +12,14 @@ export default function Login() {
   // const clientId = '2';
   // const redirectUri = 'brazof://callback';
   const authUrl = `${authConfig.server_uri}login?client_id=${authConfig.clientId}&redirect_uri=${encodeURIComponent(
-    authConfig.redirectUrl
+    authConfig.redirect_uri
   )}&response_type=code&scope=read&state=${authConfig.state}`;
 
   const onNavStateChange = (navState) => {
     const { url } = navState;
     console.log('WebView navigated to:', url);
 
-    if (url.startsWith(redirectUri)) {
+    if (url.startsWith(authConfig.redirect_uri)) {
       const match = url.match(/[?&]code=([^&]+)/);
       const code = match?.[1];
       if (code) {

@@ -2,7 +2,7 @@
 export const authConfig = {
   clientId: '2',
   clientSecret: '4TmBquXDjNlGXzykUjEOfK2MtwRyE5zpl89YPvkH',
-  redirectUrl: 'brazof://callback', // Configúralo en tu Laravel también
+  redirect_uri: 'brazof://callback', // Configúralo en tu Laravel también
   server_uri:'https://lrpm.space/oauth/',
   scopes: ['read'], // Usa el mismo scope que usabas en web
   usePKCE: false, // Laravel no soporta PKCE, desactívalo

@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useRoute } from "@react-navigation/native";
+import { useEffect, useState } from "react";
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -9,53 +11,146 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
+import { useAuth } from "../contexts/AuthContext";
+import { apiNegocioFetch, responseData } from "../contexts/apiClient";
 
-const FrankChatScreen = () => {
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Hola, ¿cómo estás?', sender: 'received' },
-    { id: '2', text: '¡Bien, gracias!', sender: 'sent' },
-  ]);
-  const [newMessage, setNewMessage] = useState('');
+export default function ChatScreen() {
+  const route = useRoute();
+  const { chat } = route.params; // viene de Inbox
+  const { profile } = useAuth();
 
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      setMessages([
-        ...messages,
-        { id: Date.now().toString(), text: newMessage, sender: 'sent' },
-      ]);
-      setNewMessage('');
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+
+  // Cargar mensajes
+  const cargarMensajes = async () => {
+    try {
+      const msgs = await responseData(
+        await apiNegocioFetch(`/mensajes/chat/${chat.id}?chat_id=${chat.id}`)
+      );
+
+      if (!msgs) {
+        return;
+      }
+
+      // Adaptar formato
+      const adaptados = msgs.map(m => ({
+        id: m.id_mensaje,
+        text: m.contenido,
+        sender: m.id_remitente === profile.id_usuario ? "sent" : "received",
+        id_remitente: m.id_remitente,
+        id_destinatario: m.id_destinatario
+      }));
+
+      setMessages(adaptados);
+    } catch (err) {
+      console.error("Error cargando mensajes de chat", err);
     }
   };
 
+  // Refrescar cada 2 segundos
+  useEffect(() => {
+    cargarMensajes();
+    const interval = setInterval(cargarMensajes, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Enviar mensaje
+  const handleSend = async () => {
+    if (!newMessage.trim() || !chat.user_b) return;
+
+    // swap user_a and user_b if needed
+    const user_a = chat.user_a === profile.id_usuario ? chat.user_a : chat.user_b;
+    const user_b = chat.user_a === profile.id_usuario ? chat.user_b : chat.user_a;
+
+    try {
+      const res = await responseData(
+        await apiNegocioFetch(`/mensajes`, {
+          method: "POST",
+          body: JSON.stringify({
+            id_remitente: user_a,
+            id_destinatario: user_b,
+            contenido: newMessage,
+            chat_id: chat.id
+          })
+        })
+      );
+
+      // Añadir localmente
+      setMessages(prev => [
+        ...prev,
+        { id: res.id_mensaje, text: newMessage, sender: "sent" }
+      ]);
+
+      setNewMessage("");
+    } catch (err) {
+      console.error("Error enviando mensaje", err);
+    }
+  };
+
+  // Eliminar mensaje
+  const handleDelete = async (id) => {
+    Alert.alert(
+      "Eliminar mensaje",
+      "¿Seguro que quieres eliminar este mensaje?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiNegocioFetch(`/mensajes/${id}`, {
+                method: "DELETE"
+              });
+              setMessages(prev => prev.filter(m => m.id !== id));
+              console.log(`Mensaje ${id} eliminado`);
+            } catch (err) {
+              console.error("Error eliminando mensaje", err);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Render de cada mensaje
   const renderItem = ({ item }) => (
-    <View
-      style={[
-        styles.messageBubble,
-        item.sender === 'sent' ? styles.sentBubble : styles.receivedBubble,
-      ]}
+    <TouchableOpacity
+      onLongPress={() => handleDelete(item.id)} // ← Mantener presionado para borrar
+      activeOpacity={0.7}
     >
-      <Text style={{ color: item.sender === 'sent' ? '#fff' : '#333' }}>
-        {item.text}
-      </Text>
-    </View>
+      <View
+        style={[
+          styles.messageBubble,
+          item.sender === "sent" ? styles.sentBubble : styles.receivedBubble,
+        ]}
+      >
+        <Text style={{ color: item.sender === "sent" ? "#444" : "#333" }}>
+          {item.text}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* KeyboardAvoidingView para que el teclado no tape el input */}
       <KeyboardAvoidingView
         style={styles.mainContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={100} // Ajusta si tu header es más alto
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={100}
       >
         <View style={styles.chatContainer}>
-          <Text style={styles.title}>Frank Chat</Text>
+          <Text style={styles.title}>{chat.name}</Text>
 
           <FlatList
             data={messages}
             renderItem={renderItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.messagesContainer}
           />
 
@@ -72,14 +167,14 @@ const FrankChatScreen = () => {
               onPress={handleSend}
               activeOpacity={0.7}
             >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Enviar</Text>
+              <Text style={{ color: "black", fontWeight: "bold" }}>Enviar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -102,7 +197,7 @@ const styles = StyleSheet.create({
   },
   title: {
     backgroundColor: '#1FFA60',
-    color: 'white',
+    color: '#444',
     padding: 16,
     fontSize: 20,
     textAlign: 'center',
@@ -153,5 +248,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-
-export default FrankChatScreen;

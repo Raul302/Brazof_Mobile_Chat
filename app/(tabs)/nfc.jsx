@@ -1,12 +1,14 @@
+import { useNavigation } from "@react-navigation/native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager';
-
-
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import NfcManager, { NfcTech } from 'react-native-nfc-manager';
+import { apiNegocioFetch, responseData } from "../../contexts/apiClient";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function NFCIndex() {
 
-
+  const { profile } = useAuth();
+  const navigation = useNavigation();
   const [nfcData, setNfcData] = useState(null);
   const [nfcReader, updateNfc] = useState(false);
   const [scanning, set_scanning] = useState(false);
@@ -42,23 +44,56 @@ console.log('NFC tech acquired.');
     // console.log( ' PAY ', tag.ndefMessage);
 
     if (tag) {
-      // Alert.alert('NFC Tag Detected', JSON.stringify(tag));
+      const uid = tag.id ? tag.id.toUpperCase().match(/.{1,2}/g).join(' ') : null;
+      console.log('UID leído:', uid);
 
-      if( tag.ndefMessage ) {
-         tag.ndefMessage.forEach((record) => {
-    const payload = Uint8Array.from(record.payload);
-    const text = Ndef.text.decodePayload(payload);
-    // console.log('Decoded:', text);
+      if (!uid) throw new Error('No se pudo leer el UID');
 
-    try {
-      const json = JSON.parse(text);
-      console.log('UID:', json.uid);
-    } catch (err) {
-      console.warn('Payload is not valid JSON:', err);
-    }
-  });
+      let response = await apiNegocioFetch(`/pulseras/uuid/${encodeURIComponent(uid)}`);
+      const pulsera = await responseData(response);
+
+      if (!response.ok) {
+        Alert.alert('Pulsera no encontrada', 'No se encontró una pulsera con ese UID');
+        set_scanning(false);
+        return;
       }
-    } else {
+      console.log('Pulsera encontrada:', pulsera.id_pulsera);
+
+      response = await apiNegocioFetch('/chats/open-or-create', {
+        method: 'POST',
+        body: JSON.stringify({
+          usuario_a: profile.id_usuario,
+          usuario_b: pulsera.id_usuario,
+          evento_id: 1
+        })
+      });
+
+      if (!response.ok) {
+        Alert.alert('Error', 'No se pudo crear el chat');
+        set_scanning(false);
+        return;
+      }
+
+      const nuevoChat = await responseData(response);
+      console.log('Chat creado:', nuevoChat);
+      set_scanning(false);
+
+      // se hace un fetch para obtener el nombre del usuario
+      response = await apiNegocioFetch(`/usuarios/${pulsera.id_usuario}`);
+      const usuario = await responseData(response);
+      console.log('Usuario encontrado:', usuario);
+
+      navigation.navigate("inbox");
+      navigation.navigate("chat", {
+        chat: {
+          id: nuevoChat.id_chat,         // ID real del chat
+          name: usuario.nombre_completo, // Nombre del otro usuario
+          user_a: profile.id_usuario,    // Tu usuario
+          user_b: pulsera.id_usuario     // El otro usuario
+        }
+      });
+    }
+    else {
       Alert.alert('No Tag Found', 'Tag is null');
     }
   } catch (ex) {

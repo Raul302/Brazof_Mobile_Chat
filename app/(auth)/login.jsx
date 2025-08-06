@@ -3,41 +3,75 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { authConfig } from '../../Constants/authConfig';
+import { useAuth } from '../../contexts/AuthContext';
+
+function buildAuthUrl() {
+    const params = new URLSearchParams({
+        client_id: authConfig.client_id,
+        redirect_uri: authConfig.redirect_uri,
+        response_type: authConfig.response_type,
+        scope: authConfig.scopes[0],
+        state: authConfig.state,
+    });
+
+    return `${authConfig.oauth_server}/login?${params.toString()}`;
+}
+
+async function exchangeCodeForTokens(router, code, login) {
+  try {
+      const response = await fetch(`${authConfig.oauth_server}/token`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+              grant_type: 'authorization_code',
+              client_id: authConfig.client_id,
+              client_secret: authConfig.client_secret,
+              redirect_uri: authConfig.redirect_uri,
+              code: code
+          })
+      });
+
+      const tokenData = await response.json();
+
+      if (response.ok) {
+          await login(tokenData.access_token, tokenData.refresh_token || '');
+      } else {
+          console.error('Error completo:', tokenData);
+      }
+
+  } catch (error) {
+      console.error('Error de red:', error);
+  }
+}
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuth();
   const webviewRef = useRef(null);
   const [showAuth, setShowAuth] = useState(false);
 
-  // const clientId = '2';
-  // const redirectUri = 'brazof://callback';
-  const authUrl = `${authConfig.server_uri}login?client_id=${authConfig.clientId}&redirect_uri=${encodeURIComponent(
-    authConfig.redirectUrl
-  )}&response_type=code&scope=read&state=${authConfig.state}`;
+  const authUrl = buildAuthUrl();
 
   const onNavStateChange = (navState) => {
     const { url } = navState;
     console.log('WebView navigated to:', url);
 
-    if (url.startsWith(redirectUri)) {
+    if (url.startsWith(authConfig.redirect_uri)) {
       const match = url.match(/[?&]code=([^&]+)/);
       const code = match?.[1];
       if (code) {
         console.log('URL ', url );
         console.log('OAuth code received:', code);
-        exchangeCodeForToken(code);
+        exchangeCodeForTokens(router, code, login);
         setShowAuth(false);
-        router.replace('/(tabs)');
       }
       return false
     }
 
     return true
-  };
-
-  const exchangeCodeForToken = async (code) => {
-    // TODO: call your token exchange endpoint here
-    console.log('Exchanging code for token:', code);
   };
 
   return (

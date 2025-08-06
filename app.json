@@ -12,7 +12,16 @@
       "supportsTablet": true
     },
     "android": {
-          "permissions": ["NFC"],
+      "permissions": [
+        "NFC",
+        "android.permission.NFC"
+      ],
+      "usesFeature": [
+        {
+          "name": "android.hardware.nfc",
+          "required": true
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -44,8 +53,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9ee8c087-1fd2-4b70-aa56-f7e227c69f68"
+        "projectId": "8e224a18-de30-44a2-8508-22797db7d596"
       }
-    }
+    },
+    "owner": "soysho"
   }
 }

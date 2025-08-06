@@ -1,18 +1,49 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from "react-native";
+import { authConfig } from '../../Constants/authConfig';
 
 export default function CustomHeader() {
-    return (
+    const [user, setUser] = useState(null);
 
+    useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) return;
+
+        const response = await fetch(`${authConfig.api_server}/auth/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          setUser(data.data); // El "data" de successResponse
+        } else {
+          console.log('Error al obtener usuario:', data);
+        }
+      } catch (error) {
+        console.log('Error de red:', error);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+    return (
         <View style={styles.custom_header}>
             <View style={styles.box_column}>
                 <Text style={styles.text}>
-                    NickName
+                    {user ? user.nombre_completo : 'Cargando...'}
                 </Text>
                 <Text style={styles.text}>
-                    SB-800-3
+                    {user ? user.correo : 'Cargando...'}
                 </Text>
             </View>
-
 
             <Image
                 source={require('../../assets/images/profile_image.png')
@@ -24,15 +55,12 @@ export default function CustomHeader() {
                 }}
             />
         </View>
-
     )
-
 }
 
 const styles = StyleSheet.create({
     text: {
         color: '#ffffff',
-
     },
     box_column: {
         marginRight: 20

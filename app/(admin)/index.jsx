@@ -1,0 +1,170 @@
+import { useEffect, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import NfcManager, { NfcTech } from 'react-native-nfc-manager';
+import { apiNegocioFetch, oauthFetch, responseData } from "../../contexts/apiClient";
+
+export default function UsuariosScreen() {
+  const [usuarios, setUsuarios] = useState([]);
+  const [pulseras, setPulseras] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [enlazandoId, setEnlazandoId] = useState(null);
+
+  useEffect(() => {
+    cargarDatos();
+    NfcManager.start()
+      .then(() => console.log('NFC Manager started'))
+      .catch(err => console.warn('NFC start error', err));
+  }, []);
+
+  const cargarDatos = async () => {
+    setLoading(true);
+    try {
+      let datos = await responseData(await oauthFetch('/usuarios'));
+      console.log('Se cargaron usuarios:', datos.length);
+      setUsuarios(datos);
+      datos = await responseData(await apiNegocioFetch('/pulseras'));
+      console.log('Se cargaron pulseras:', datos.length);
+      setPulseras(datos);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  function formatUID(uid) {
+    return uid
+      .toUpperCase()
+      .match(/.{1,2}/g)
+      ?.join(' ') || '';
+  }
+
+  const leerPulsera = async (userId) => {
+    // Si ya estamos enlazando a este usuario => cancelar
+    if (enlazandoId === userId) {
+      try { await NfcManager.cancelTechnologyRequest(); } catch {}
+      setEnlazandoId(null);
+      return;
+    }
+
+    // Si estamos enlazando a otro usuario => cancelar y cambiar el foco
+    if (enlazandoId !== null && enlazandoId !== userId) {
+      try { await NfcManager.cancelTechnologyRequest(); } catch {}
+    }
+
+    setEnlazandoId(userId);
+    console.log('Asociando pulsera al usuario ID:', userId);
+
+    try {
+      await NfcManager.cancelTechnologyRequest().catch(() => {}); // cerrar previas
+      await NfcManager.requestTechnology(NfcTech.Ndef);
+
+      const tag = await NfcManager.getTag();
+      const uid = formatUID(tag.id);
+
+      const response = await apiNegocioFetch('/pulseras', {
+        method: 'POST',
+        body: JSON.stringify({ uuid: uid, id_usuario: userId })
+      });
+      
+      if (!response.ok) {
+        Alert.alert('No se pudo asociar la pulsera');
+        setEnlazandoId(null);
+        return;
+      }
+
+      Alert.alert('Pulsera asociada', `UID: ${uid}`);
+      setEnlazandoId(null);
+      cargarDatos();
+    } catch (e) {
+      console.warn('Error NFC:', e);
+      setEnlazandoId(null);
+    } finally {
+      try { await NfcManager.cancelTechnologyRequest(); } catch {}
+    }
+  };
+
+  const eliminarPulsera = async (userId) => {
+    const pulsera = pulseras.find(p => p.id_usuario === userId);
+    Alert.alert(
+      "Confirmar",
+      "¿Quieres eliminar la pulsera de este usuario?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            const response = await apiNegocioFetch(`/pulseras/${pulsera.id_pulsera}`, {
+              method: 'DELETE'
+            });
+            if (!response.ok) {
+              Alert.alert('Error', 'No se pudo eliminar la pulsera');
+              return;
+            }
+            cargarDatos();
+          }
+        }
+      ]
+    );
+  };
+
+  const renderItem = ({ item }) => {
+    const isLinking = enlazandoId === item.id_usuario;
+    const tienePulsera = pulseras.some(p => p.id_usuario === item.id_usuario);
+    return (
+      <View style={styles.item}>
+        <Text style={styles.name}>{item.nombre_completo}</Text>
+        <Text style={styles.email}>{item.correo}</Text>
+
+        {tienePulsera ? (
+          <View>
+            <Text style={styles.name}>Pulsera Asociada:</Text>
+            <Text style={styles.email}>
+              {pulseras.find(p => p.id_usuario === item.id_usuario)?.uuid || 'Desconocida'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.btn, styles.deleteBtn]}
+              onPress={() => eliminarPulsera(item.id_usuario)}
+            >
+              <Text style={styles.btnText}>Eliminar Pulsera</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.btn, isLinking ? styles.cancelBtn : styles.linkBtn]}
+            onPress={() => leerPulsera(item.id_usuario)}
+          >
+            <Text style={styles.btnText}>
+              {isLinking ? 'Asociando...' : 'Asociar Pulsera'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    )
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000', padding: 10 }}>
+      <Text style={styles.title}>Usuarios Registrados</Text>
+      <FlatList
+        data={usuarios}
+        keyExtractor={(item) => item.id_usuario.toString()}
+        renderItem={renderItem}
+        refreshing={loading}
+        onRefresh={cargarDatos}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  title: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  item: { backgroundColor: '#3b3b3bff', padding: 10, marginBottom: 8, borderRadius: 8 },
+  name: { color: '#fff', fontSize: 16 },
+  email: { color: '#aaa', fontSize: 14 },
+  btn: { padding: 8, borderRadius: 5, marginTop: 5 },
+  linkBtn: { backgroundColor: '#1FFF62' },
+  cancelBtn: { backgroundColor: '#FFD700' },
+  deleteBtn: { backgroundColor: '#ff4d4d' },
+  btnText: { color: '#000', fontWeight: 'bold', textAlign: 'center' }
+});

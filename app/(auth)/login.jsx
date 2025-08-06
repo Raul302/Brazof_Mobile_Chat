@@ -1,90 +1,90 @@
-import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from 'expo-router';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { WebView } from 'react-native-webview';
+import { authConfig } from '../../Constants/authConfig';
 
 export default function Login() {
+  const router = useRouter();
+  const webviewRef = useRef(null);
+  const [showAuth, setShowAuth] = useState(false);
 
-    const router = useRouter();
+  // const clientId = '2';
+  // const redirectUri = 'brazof://callback';
+  const authUrl = `${authConfig.server_uri}login?client_id=${authConfig.clientId}&redirect_uri=${encodeURIComponent(
+    authConfig.redirectUrl
+  )}&response_type=code&scope=read&state=${authConfig.state}`;
 
+  const onNavStateChange = (navState) => {
+    const { url } = navState;
+    console.log('WebView navigated to:', url);
 
-  const handleApiSigIn = () => {
+    if (url.startsWith(redirectUri)) {
+      const match = url.match(/[?&]code=([^&]+)/);
+      const code = match?.[1];
+      if (code) {
+        console.log('URL ', url );
+        console.log('OAuth code received:', code);
+        exchangeCodeForToken(code);
+        setShowAuth(false);
+        router.replace('/(tabs)');
+      }
+      return false
+    }
 
-    // axios.post( url_api ),
+    return true
+  };
 
-    // Logic to log-in with the api and login like google 
+  const exchangeCodeForToken = async (code) => {
+    // TODO: call your token exchange endpoint here
+    console.log('Exchanging code for token:', code);
+  };
 
-    // after that redirect if all went succesfully
-
-   router.replace('/(tabs)')
-    
-    console.log( ' New Login ');
-
-  }
   return (
 
-    // View container
-    <View
-      style={styles.container}
-    >
+    
+    <View style={styles.container}>
 
-{/* Image */}
-      <Image
+       <Image
         style={styles.logo}
         source={require('../../assets/images/logowithouthbrackground.png')}
       />
-      {/* End Image */}
-
-      {/* Text */}
-      <Text style={styles.textHeader}>Login</Text>
-            <Text style={styles.normalText}>Discover an amazing experience with Us</Text>
-
-    {/* End Texts */}
 
 
-{/* View container content */}
-      <View style={styles.container_content}>
+       <Text style={styles.textHeader}>Login</Text>
+       <Text style={styles.normalText}>Discover an amazing experience with Us</Text>
 
 
-{/* View separator */}
-        <View style={styles.view_separator}>
+      {!showAuth && (
+        <TouchableOpacity style={styles.loginBtn} onPress={() => setShowAuth(true)}>
+          <Text style={styles.loginText}>Login</Text>
+        </TouchableOpacity>
+      )}
 
-           {/* <Shadow distance={10} startColor={'#1FFF62'} endColor={'#ff00ff10'} offset={[0, 2]}> */}
-              <TouchableOpacity 
-              onPress={handleApiSigIn}
-              activeOpacity={0.4}
-            style={{backgroundColor:'#000000', width:300,height:50,justifyContent:'center',alignItems:'center', borderRadius: 15}}>
-            <Text style={{color:'#FFFFFF',fontWeight:600}}>Login</Text>
+      {showAuth && (
+        <View style={styles.webviewContainer}>
+          <ActivityIndicator style={styles.spinner} size="large" color="#1FFF62" />
+          <WebView
+            ref={webviewRef}
+            source={{ uri: authUrl }}
+            onShouldStartLoadWithRequest={onNavStateChange}
+            startInLoadingState
+            javaScriptEnabled
+            domStorageEnabled
+          />
+          <TouchableOpacity style={styles.closeBtn} onPress={() => setShowAuth(false)}>
+            <Text style={styles.closeText}>Cancel</Text>
           </TouchableOpacity>
-
-
-          {/* </Shadow>  */}
-
-          </View>
-
-          {/* End View separator */}
-
-
-
-
-
-        
-
         </View>
-        {/* End View content container */}
-
-
-
-
+      )}
     </View>
-
-    // End view Container
   );
 }
 
-
-// Styles 
-
 const styles = StyleSheet.create({
- 
+
+
+  
   container_content: {
     // backgroundColor: '#4b3ccfff',
     width: '77%',
@@ -115,22 +115,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
 
-    // // Shadows properties
-    // shadowColor:'#1FFF62',
-    //  shadowOffset: {
-    //   width: 0,
-    //   height: 4,
-    // },
-    // shadowOpacity: 0.5,
-    // shadowRadius: 10,
-    // elevation: 16, // Android
-
-    // // end shadow Properties
-
-
   },
   normalText: {
     marginTop: '20%',
+    marginBottom:100,
     width: '70%',
     textAlign: 'center',
     color: '#FFFFFF',
@@ -158,5 +146,34 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     alignItems: 'center',
-  }
-})
+  },
+  // container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loginBtn: {
+    backgroundColor: '#1FFF62',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+  },
+  loginText: { color: '#000', fontSize: 18, fontWeight: 'bold' },
+  webviewContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    bottom: 50,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#1FFF62',
+  },
+  spinner: { position: 'absolute', top: '50%', left: '50%' },
+  closeBtn: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    backgroundColor: '#000',
+    padding: 12,
+    alignItems: 'center',
+  },
+  closeText: { color: '#fff', fontSize: 16 },
+});

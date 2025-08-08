@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import CustomHeader from '../../components/CustomHeader/CustomHeader';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminLayout() {
+  const { pulseras } = useAuth();
+
   return (
     <View style={{ backgroundColor: '#000000', flex: 1 }}>
       <CustomHeader />
@@ -52,6 +55,74 @@ export default function AdminLayout() {
           }}
         />
 
+        {/* TAB: NFC */}
+        <Tabs.Screen
+          name="nfc"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <View style={{ width: 100, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ position: 'relative', width: 50, height: 50, top: -20 }}>
+                  <Image
+                    source={
+                      pulseras.length > 0 ?
+                      require('../../assets/images/central_nfc.png') :
+                      require('../../assets/images/central_nfc_prohibited_with_border.png')
+                    }
+                    resizeMode='contain'
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                    }}
+                  />
+                  {focused && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -4,
+                        left: -4,
+                        right: -4,
+                        bottom: -4,
+                        borderWidth: 4,
+                        borderColor: '#1fff629f',
+                        borderRadius: 100,
+                      }}
+                    />
+                  )}
+                </View>
+              </View>
+            )
+          }}
+        />
+
+        {/* TAB: INBOX */}
+        <Tabs.Screen
+          name="inbox"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <View style={styles.tabItem}>
+                <Image
+                  source={require('../../assets/images/message.png')}
+                  resizeMode='contain'
+                  style={{
+                    width: 20,
+                    height: 20,
+                    tintColor: focused ? '#FFFFFF' : '#676D75'
+                  }}
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    { color: focused ? '#FFFFFF' : '#676D75' }
+                  ]}
+                  numberOfLines={1}
+                >
+                  Inbox
+                </Text>
+              </View>
+            )
+          }}
+        />
+
         {/* TAB: PERFIL */}
         <Tabs.Screen
           name="profile"
@@ -90,7 +161,7 @@ const styles = StyleSheet.create({
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 70, // 🔹 Controla que no se parta el texto
+    width: 70,
   },
   tabText: {
     fontSize: 12,

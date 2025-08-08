@@ -18,9 +18,11 @@ export default function TabLayout() {
           borderColor: '#1FFF62',
           position: 'absolute',
           backgroundColor: '#2E2E2F',
-          borderTopWidth: 5,
+          borderTopWidth: 4,
+          height: 60, // 🔹 Altura más compacta
+          paddingBottom: 5,
+          paddingTop: 5,
           shadowColor: "#1FFF62",
-          
           ...styles.shadow
         }
       }}>
@@ -86,21 +88,30 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={{ width: 100, alignItems: 'center', justifyContent: 'center' }}>
-              <Image
-                source={
-                  !focused ? require('../../assets/images/central_nfc_prohibited_with_border.png')
-                  :
-                  require('../../assets/images/central_nfc.png')
-                }
-                resizeMode='contain'
-                style={{
-                  width: 50,
-                  height: 50,
-                  top: -20,
-                  // tintColor: focused ? '#FFFFFF' : '#0060dfff'
-                }}
+              <View style={{ position: 'relative', width: 50, height: 50, top: -20 }}>
+                <Image
+                  source={require('../../assets/images/central_nfc.png')}
+                  resizeMode='contain'
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                  }}
                 />
-
+                {focused && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -4,
+                      left: -4,
+                      right: -4,
+                      bottom: -4,
+                      borderWidth: 4,
+                      borderColor: '#1fff629f',
+                      borderRadius: 100,
+                    }}
+                  />
+                )}
+              </View>
             </View>
           )
         }}

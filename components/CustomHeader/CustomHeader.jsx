@@ -1,47 +1,24 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from "react-native";
-import { authConfig } from '../../Constants/authConfig';
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function CustomHeader() {
-    const [user, setUser] = useState(null);
+    const { profile, pulseras, loading } = useAuth();
 
-    useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const token = await AsyncStorage.getItem('access_token');
-        if (!token) return;
-
-        const response = await fetch(`${authConfig.api_server}/auth/me`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          setUser(data.data); // El "data" de successResponse
-        } else {
-          console.log('Error al obtener usuario:', data);
-        }
-      } catch (error) {
-        console.log('Error de red:', error);
-      }
-    };
-
-    loadUser();
-  }, []);
+    const nombre = !loading ? profile?.nombre_completo : 'Cargando...';
+    const tag = !loading
+      ? pulseras?.length === 1
+        ? `TAG ${pulseras[0]?.uuid}`
+        : 'Sin TAG asociado'
+      : 'Cargando...';
 
     return (
         <View style={styles.custom_header}>
             <View style={styles.box_column}>
                 <Text style={styles.text}>
-                    {user ? user.nombre_completo : 'Cargando...'}
+                    {nombre}
                 </Text>
                 <Text style={styles.text}>
-                    {user ? user.correo : 'Cargando...'}
+                    {tag}
                 </Text>
             </View>
 

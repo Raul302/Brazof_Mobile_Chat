@@ -9,7 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NFCReaderUsageDescription": "Esta app utiliza NFC para leer etiquetas compatibles.",
+        "NSCameraUsageDescription": "Esta app necesita acceso a la cámara.",
+        "NSMicrophoneUsageDescription": "Esta app necesita acceso al micrófono.",
+        "NSLocationWhenInUseUsageDescription": "Esta app utiliza tu ubicación mientras está en uso.",
+        "NSLocationAlwaysUsageDescription": "Esta app necesita tu ubicación incluso cuando está en segundo plano.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.raul302.brazof"
     },
     "android": {
       "permissions": [

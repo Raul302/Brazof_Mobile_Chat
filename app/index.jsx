@@ -8,7 +8,6 @@ export default function Index() {
 
   useEffect(() => {
     if (loading) return;
-
     console.log('ROL:', profile?.rol);
 
     if (!profile) {

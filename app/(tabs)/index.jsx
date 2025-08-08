@@ -3,17 +3,53 @@ import { useEffect, useRef, useState } from "react";
 import { Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Rating } from "react-native-ratings";
 import { obj_ads } from "../../Constants/data_carrousel";
+import { fetchData } from "../../contexts/apiClient";
 
+function formatearRangoFecha(fecha_inicio, fecha_fin) {
+  const meses = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const inicio = new Date(fecha_inicio);
+  const fin = new Date(fecha_fin);
+
+  // Nombre mes abreviado
+  const mesInicio = meses[inicio.getMonth()];
+  const diaInicio = inicio.getDate();
+
+  const diaFin = fin.getDate();
+
+  // Resultado: "Oct 24 - 26"
+  return `${mesInicio} ${diaInicio} - ${diaFin}`;
+}
+
+function recortarUbicacion(ubicacion) {
+  if (!ubicacion) return "";
+
+  // Dividir la cadena por coma
+  const partes = ubicacion.split(',');
+
+  if (partes.length < 2) {
+    // Si no hay coma, devuelve la cadena completa sin cambios o recortada a 10 caracteres
+    return ubicacion.length > 10 ? ubicacion.slice(0, 10) + "..." : ubicacion;
+  }
+
+  // Tomar las dos primeras partes
+  let ciudad = partes[0].trim();
+  let estado = partes[1].trim();
+
+  // Opcional: recortar palabras a primeras 4 letras
+  ciudad = ciudad.length > 4 ? ciudad.slice(0, 4) : ciudad;
+  estado = estado.length > 4 ? estado.slice(0, 4) : estado;
+
+  // Retornar formateado con espacio y coma, igual que ejemplo "Torr , Coah"
+  return `${ciudad} , ${estado}`;
+}
 
 export default function HomeIndex(  ) {
-
-
-
+  const [eventos, setEventos] = useState([]);
   const navigation = useNavigation();
   const flatListRef = useRef(0);
-  const STAR_IMAGE = require('../../assets/images/star_fill.png')
-
-
+  const STAR_IMAGE = require('../../assets/images/star_fill.png');
 
   // Get Dimensions
   const screenWidth = Dimensions.get('window').width;
@@ -27,6 +63,35 @@ export default function HomeIndex(  ) {
   const [modal_visible, set_modal_visible] = useState(false);
   const [modal_rating, set_modal_rating] = useState(false);
   const [current_ad, set_current_ad] = useState({});
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const eventos = await fetchData(`/api/registro_acceso/mis-eventos`);
+
+        for (const evento of eventos) {
+          const imagenes = await fetchData(`/api/imagenes?tipo_entidad=evento&id_entidad=${evento.id_evento}`);
+          if (imagenes.ok && imagenes.length > 0) {
+            evento.image_url = imagenes[0].url;
+            try {
+              const response = await fetch(evento.image_url);
+              if (!response.ok) throw new Error('Imagen no encontrada');
+            } catch {
+              evento.image_url = 'https://picsum.photos/300/200';
+            }
+          } else {
+            evento.image_url = 'https://picsum.photos/300/200';
+          }
+        }
+
+        setEventos(eventos);
+        console.log('Eventos cargados:', eventos);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    cargarDatos();
+  }, []);
 
   useEffect(() => {
 
@@ -234,13 +299,9 @@ export default function HomeIndex(  ) {
         </View>
       </View>
 
+      <ScrollView style={{ marginBottom: 60 }}>
 
-
-
-
-      <ScrollView style={{ marginTop: '10%' }}>
-
-        {scroll_data.map((scroll,index) => (
+        {eventos.map((evento, index) => (
 
           <View key={'view_'+index}>
             {/* Card  */}
@@ -252,8 +313,8 @@ export default function HomeIndex(  ) {
                   })}>
               {/* View image background */}
               <ImageBackground
-              key={'imagebackground_'+index} source={require('../../assets/images/pal_norte_background.jpg')
-              } resizeMode="cover" style={styles.background_img}>
+              key={'imagebackground_'+index} source={{ uri: evento.image_url }}
+              resizeMode="cover" style={styles.background_img}>
 
                 {/* View top ranking */}
 
@@ -287,7 +348,7 @@ export default function HomeIndex(  ) {
                 <View style={styles.details_bottom}>
                     
                   <View style={{ flexDirection: 'column', paddingTop: 10, paddingLeft: 10 }}>
-                    <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>Torreon , Coahuila</Text>
+                    <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>{evento.nombre}</Text>
                     <View style={{ flexDirection: "row", paddingTop: 10, paddingRight: 20, justifyContent: 'space-between' }}>
                       <View style={{ paddingRight: 10, borderColor: '#676D75', borderRightWidth: 0.5 }}>
                         <Text style={{ color: '#676D75' }}> COST </Text>
@@ -308,7 +369,7 @@ export default function HomeIndex(  ) {
                             }}
                           />
 
-                          <Text style={{ color: '#FFFFFF' }}> Torr , Coah </Text>
+                          <Text style={{ color: '#FFFFFF' }}> {recortarUbicacion(evento.ubicacion)} </Text>
                         </View>
                       </View>
 
@@ -324,7 +385,9 @@ export default function HomeIndex(  ) {
                               tintColor: '#37F4FA'
                             }}
                           />
-                          <Text style={{ color: '#FFFFFF', paddingTop: 5 }}> Oct 24 - 26 </Text>
+                          <Text style={{ color: '#FFFFFF', paddingTop: 5 }}>
+                            {formatearRangoFecha(evento.fecha_inicio, evento.fecha_fin)}
+                          </Text>
                         </View>
 
                       </View>
@@ -355,16 +418,8 @@ export default function HomeIndex(  ) {
 
       </ScrollView>
 
-
-
-
-
     </View>
   )
-
-
-
-
 }
 
 
@@ -440,8 +495,9 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
+    maxWidth: '100%',
     height: Dimensions.get('window').height / 3,
-    marginTop: '20%',
+    marginTop: '10%',
     backgroundColor: ' rgba(31, 255, 98, 0.66)',
     boxShadow: '0px 0px 10px 10px rgba(31, 255, 98, 0.66)',
     borderRadius: 15,

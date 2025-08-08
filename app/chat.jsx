@@ -1,5 +1,5 @@
 import { useRoute } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -13,12 +13,14 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
-import { apiNegocioFetch, responseData } from "../contexts/apiClient";
+import { apiFetch, fetchData } from "../contexts/apiClient";
 
 export default function ChatScreen() {
   const route = useRoute();
   const { chat } = route.params; // viene de Inbox
   const { profile } = useAuth();
+  const flatListRef = useRef(null);
+  const lastMessageId = useRef(null);
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -26,11 +28,9 @@ export default function ChatScreen() {
   // Cargar mensajes
   const cargarMensajes = async () => {
     try {
-      const msgs = await responseData(
-        await apiNegocioFetch(`/mensajes/chat/${chat.id}?chat_id=${chat.id}`)
-      );
-
-      if (!msgs) {
+      const msgs = await fetchData(`/api/mensajes/chat/${chat.id}?chat_id=${chat.id}`);
+      if (!msgs.ok) {
+        console.log("No se pudieron cargar los mensajes del chat:", msgs.data.message);
         return;
       }
 
@@ -38,7 +38,7 @@ export default function ChatScreen() {
       const adaptados = msgs.map(m => ({
         id: m.id_mensaje,
         text: m.contenido,
-        sender: m.id_remitente === profile.id_usuario ? "sent" : "received",
+        sender: m.id_remitente === profile.id ? "sent" : "received",
         id_remitente: m.id_remitente,
         id_destinatario: m.id_destinatario
       }));
@@ -48,6 +48,17 @@ export default function ChatScreen() {
       console.error("Error cargando mensajes de chat", err);
     }
   };
+
+  // Auto-scroll al final cuando llegan mensajes nuevos
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.id !== lastMessageId.current) {
+      lastMessageId.current = lastMsg?.id;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
+    }
+  }, [messages]);
 
   // Refrescar cada 2 segundos
   useEffect(() => {
@@ -61,21 +72,25 @@ export default function ChatScreen() {
     if (!newMessage.trim() || !chat.user_b) return;
 
     // swap user_a and user_b if needed
-    const user_a = chat.user_a === profile.id_usuario ? chat.user_a : chat.user_b;
-    const user_b = chat.user_a === profile.id_usuario ? chat.user_b : chat.user_a;
+    const user_a = chat.user_a === profile.id ? chat.user_a : chat.user_b;
+    const user_b = chat.user_a === profile.id ? chat.user_b : chat.user_a;
 
     try {
-      const res = await responseData(
-        await apiNegocioFetch(`/mensajes`, {
-          method: "POST",
-          body: JSON.stringify({
-            id_remitente: user_a,
-            id_destinatario: user_b,
-            contenido: newMessage,
-            chat_id: chat.id
-          })
-        })
-      );
+      const res = await fetchData(`/api/mensajes`, {
+        method: "POST",
+        body: {
+          id_remitente: user_a,
+          id_destinatario: user_b,
+          contenido: newMessage,
+          chat_id: chat.id
+        }
+      });
+
+      if (!res.ok) {
+        Alert.alert("Error", "No se pudo enviar el mensaje");
+        console.log("Error enviando mensaje: ", res.data.message);
+        return;
+      }
 
       // Añadir localmente
       setMessages(prev => [
@@ -83,6 +98,7 @@ export default function ChatScreen() {
         { id: res.id_mensaje, text: newMessage, sender: "sent" }
       ]);
 
+      console.log("Mensaje enviado:", newMessage);
       setNewMessage("");
     } catch (err) {
       console.error("Error enviando mensaje", err);
@@ -104,9 +120,12 @@ export default function ChatScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await apiNegocioFetch(`/mensajes/${id}`, {
-                method: "DELETE"
-              });
+              const res = await apiFetch(`/api/mensajes/${id}`, { method: "DELETE" });
+              if (!res.ok) {
+                Alert.alert("Error", "No se pudo eliminar el mensaje");
+                console.error("Error eliminando mensaje:", res.data.message);
+                return;
+              }
               setMessages(prev => prev.filter(m => m.id !== id));
               console.log(`Mensaje ${id} eliminado`);
             } catch (err) {
@@ -149,6 +168,7 @@ export default function ChatScreen() {
 
           <FlatList
             data={messages}
+            ref={flatListRef}
             renderItem={renderItem}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.messagesContainer}
@@ -184,7 +204,6 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     paddingTop: 10, // espacio para que no toque el header
-    paddingBottom: 60, // espacio para que no toque la tabBar
     alignItems: 'center',
   },
   chatContainer: {
@@ -204,7 +223,9 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flexGrow: 1,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 0, // ❌ evita que cree "scroll invisible" extra
     backgroundColor: '#676D75',
   },
   messageBubble: {

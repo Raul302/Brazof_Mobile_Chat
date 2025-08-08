@@ -1,13 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import NfcManager, { NfcTech } from 'react-native-nfc-manager';
-import { apiNegocioFetch, oauthFetch, responseData } from "../../contexts/apiClient";
+import { apiFetch, fetchData } from "../../contexts/apiClient";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function UsuariosScreen() {
+  const { pulseras: pulserasContext, loadPulseras } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [pulseras, setPulseras] = useState([]);
   const [loading, setLoading] = useState(false);
   const [enlazandoId, setEnlazandoId] = useState(null);
+  const lastPulserasRef = useRef([]);
+
+  // Se reacciona a cambios en el contexto de pulseras (la pulsera del usuario actual)
+  useEffect(() => {
+    const stringify = (arr) => JSON.stringify(arr.map(p => ({
+      id: p.id_pulsera,
+      uuid: p.uuid,
+      id_usuario: p.id_usuario
+    })));
+
+    const prev = stringify(lastPulserasRef.current);
+    const next = stringify(pulserasContext);
+
+    if (prev !== next) {
+      lastPulserasRef.current = pulserasContext;
+      cargarDatos();
+    }
+  }, [pulserasContext]);
 
   useEffect(() => {
     cargarDatos();
@@ -19,12 +39,13 @@ export default function UsuariosScreen() {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      let datos = await responseData(await oauthFetch('/usuarios'));
-      console.log('Se cargaron usuarios:', datos.length);
-      setUsuarios(datos);
-      datos = await responseData(await apiNegocioFetch('/pulseras'));
-      console.log('Se cargaron pulseras:', datos.length);
-      setPulseras(datos);
+      const usuarios = await fetchData('/api/usuarios');
+      console.log('Se cargaron usuarios:', usuarios.length);
+      setUsuarios(usuarios);
+      const pulseras = await fetchData('/api/pulseras');
+      console.log('Se cargaron pulseras:', pulseras.length);
+      setPulseras(pulseras);
+      loadPulseras(); // Actualizar contexto de pulseras
     } catch (err) {
       console.error(err);
     }
@@ -61,9 +82,9 @@ export default function UsuariosScreen() {
       const tag = await NfcManager.getTag();
       const uid = formatUID(tag.id);
 
-      const response = await apiNegocioFetch('/pulseras', {
+      const response = await apiFetch('/api/pulseras', {
         method: 'POST',
-        body: JSON.stringify({ uuid: uid, id_usuario: userId })
+        body: { uuid: uid, id_usuario: userId }
       });
       
       if (!response.ok) {
@@ -94,9 +115,7 @@ export default function UsuariosScreen() {
           text: "Eliminar",
           style: "destructive",
           onPress: async () => {
-            const response = await apiNegocioFetch(`/pulseras/${pulsera.id_pulsera}`, {
-              method: 'DELETE'
-            });
+            const response = await apiFetch(`/api/pulseras/${pulsera.id_pulsera}`, { method: 'DELETE'});
             if (!response.ok) {
               Alert.alert('Error', 'No se pudo eliminar la pulsera');
               return;
@@ -148,6 +167,7 @@ export default function UsuariosScreen() {
       <Text style={styles.title}>Usuarios Registrados</Text>
       <FlatList
         data={usuarios}
+        contentContainerStyle={{ paddingBottom: 55 }}
         keyExtractor={(item) => item.id_usuario.toString()}
         renderItem={renderItem}
         refreshing={loading}

@@ -1,40 +1,37 @@
-import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { authConfig } from '../../Constants/authConfig';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiFetch, responseData } from '../../contexts/apiClient';
+
+const redirect_uri = `${authConfig.api_url}/oauth/callback`;
 
 function buildAuthUrl() {
     const params = new URLSearchParams({
         client_id: authConfig.client_id,
-        redirect_uri: authConfig.redirect_uri,
+        redirect_uri: redirect_uri,
         response_type: authConfig.response_type,
-        scope: authConfig.scopes[0],
+        scope: authConfig.scope,
         state: authConfig.state,
     });
 
-    return `${authConfig.oauth_server}/login?${params.toString()}`;
+    return `${authConfig.api_url}/oauth/login?${params.toString()}`;
 }
 
-async function exchangeCodeForTokens(router, code, login) {
+async function exchangeCodeForTokens(code, login) {
   try {
-      const response = await fetch(`${authConfig.oauth_server}/token`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-              grant_type: 'authorization_code',
-              client_id: authConfig.client_id,
-              client_secret: authConfig.client_secret,
-              redirect_uri: authConfig.redirect_uri,
-              code: code
-          })
+      const response = await apiFetch('/oauth/token', {
+        method: 'POST',
+        body: {
+            grant_type: 'authorization_code',
+            client_id: authConfig.client_id,
+            client_secret: authConfig.client_secret,
+            redirect_uri: redirect_uri,
+            code: code
+        }
       });
-
-      const tokenData = await response.json();
+      const tokenData = await responseData(response, { full: true });
 
       if (response.ok) {
           await login(tokenData.access_token, tokenData.refresh_token || '');
@@ -48,7 +45,6 @@ async function exchangeCodeForTokens(router, code, login) {
 }
 
 export default function Login() {
-  const router = useRouter();
   const { login } = useAuth();
   const webviewRef = useRef(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -59,13 +55,13 @@ export default function Login() {
     const { url } = navState;
     console.log('WebView navigated to:', url);
 
-    if (url.startsWith(authConfig.redirect_uri)) {
+    if (url.startsWith(redirect_uri)) {
       const match = url.match(/[?&]code=([^&]+)/);
       const code = match?.[1];
       if (code) {
         console.log('URL ', url );
         console.log('OAuth code received:', code);
-        exchangeCodeForTokens(router, code, login);
+        exchangeCodeForTokens(code, login);
         setShowAuth(false);
       }
       return false
@@ -76,7 +72,7 @@ export default function Login() {
 
   return (
 
-    
+
     <View style={styles.container}>
 
        <Image
@@ -118,7 +114,7 @@ export default function Login() {
 const styles = StyleSheet.create({
 
 
-  
+
   container_content: {
     // backgroundColor: '#4b3ccfff',
     width: '77%',
@@ -188,7 +184,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 10,
   },
-  loginText: { color: '#000', fontSize: 18, fontWeight: 'bold' },
+  loginText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    flexShrink: 1, // <-- ¡Evita que se corte el texto!
+    numberOfLines: 1, // <-- Solo una línea, no se rompe
+  },
   webviewContainer: {
     position: 'absolute',
     top: 50,

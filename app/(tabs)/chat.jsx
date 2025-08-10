@@ -184,7 +184,11 @@ export default function ChatIndex() {
 
  
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.contactItem}>
+    <TouchableOpacity 
+     onPress={() => {
+                navigation.navigate('individual_chat');
+              }}
+    style={styles.contactItem}>
       <Text style={styles.avatar}>👤</Text>
       <View style={styles.contactInfo}>
         <Text style={styles.contactName}>{item.nombre_completo}</Text>

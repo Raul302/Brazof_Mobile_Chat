@@ -82,6 +82,15 @@ export default function TabLayout() {
         }}
         />
 
+          <Tabs.Screen
+         
+        name="edit_profile"
+          options={{
+          href: null,
+        }}
+        />
+
+
       <Tabs.Screen
         name="search"
         options={{

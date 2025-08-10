@@ -1,19 +1,8 @@
-import { useNavigation, useRouter } from "expo-router";
 import { useContext } from "react";
-import { Button, Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function ProfileIndex() {
-
-  const router = useRouter()
-
-    const navigation = useNavigation();
-
-    const handleLogout = async  () =>{
-    await logout();
-    router.replace('/(auth)/login'); // o simplemente 'login' según tu estructura de rutas
-    }
-  
 
 
     const { logout , user  } = useContext(AuthContext);
@@ -35,10 +24,10 @@ return(
          />
        </View>
          <Text style={{fontSize:24, fontWeight:600, justifyContent:'center',alignItems:'center', color : '#FFF'}}>
-          { user?.name }
+          { user.name }
          </Text>
            <Text style={{ justifyContent:'center',alignItems:'center', color : '#FFF'}}>
-          { user?.email } 
+          { user.email } 
          </Text>
        </View>
 
@@ -53,12 +42,8 @@ return(
          resizeMode="cover"
          style={{ marginRight:10,width:18 , height:18}}
          />
-             <Pressable onPress={() => {
-                navigation.navigate('edit_profile', { item: user });
-              }}>
                <Text style={{color:'#FFF'}}>
                 Edit profile information</Text>
-              </Pressable>
 
            </View>
            <View>
@@ -144,11 +129,6 @@ return(
           </View>
 
        </View>
-
-         
-    <View style={{  justifyContent:'center',alignItems:'center', padding: 20 }}>
-      <Button  title="Cerrar session" onPress={handleLogout} color="red" />
-    </View>
       
       </View>
 

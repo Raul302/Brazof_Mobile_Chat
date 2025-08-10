@@ -42,3 +42,10 @@ app-example
 # customer expo-doctor recommends
 /android
 /ios
+
+
+./assets
+./components
+./Constants
+./context
+./Hooks

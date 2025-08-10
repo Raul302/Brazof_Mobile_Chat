@@ -1,271 +1,114 @@
-import { useRouter } from 'expo-router';
-import { useContext, useRef, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { useContext, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { authConfig } from '../../Constants/authConfig';
 import { AuthContext } from '../../context/AuthContext';
 
-
-
-function buildAuthUrl() {
-
-
-  const params = new URLSearchParams({
-    client_id: authConfig.clientId,
-    redirect_urii: authConfig.redirect_uri,
-    response_type: authConfig.response_type,
-    scope: authConfig.scopes[0],
-    state: authConfig.state,
-  });
-
-  return `${authConfig.oauth_server}/login?${params.toString()}`;
-}
-async function exchangeCodeForTokens(router, code, login) {
-  try {
-    const response = await fetch(`${authConfig.server_uri}token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-         'Accept': 'application/json'
-
-
-      },
-      body: JSON.stringify({
-        grant_type: 'authorization_code',
-        client_id: authConfig.clientId,
-        client_secret: authConfig.clientSecret,
-        redirect_uri: authConfig.redirect_uri,
-        code: code
-      })
-    });
-
-
-
-
-
-    const tokenData = await response.json();
-
-
-    if (response.ok) {
-      await login(tokenData.access_token, tokenData.refresh_token || '');
-    } else {
-      console.error('Error completo:', tokenData);
-    }
-  } catch (error) {
-    console.error('Error de red:', error);
-  }
-
-
-}
-
-
-
 export default function Login() {
-  const router = useRouter();
-  const webviewRef = useRef(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const { login, user , token, loading } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
 
+  const clientId = authConfig.clientId;
+  const redirectUri = authConfig.redirect_uri; // ej: 'brazof://callback'
 
-  const clientId = '2';
-  const redirectUri = 'brazof://callback';
   const authUrl = `${authConfig.server_uri}login?client_id=${clientId}&redirect_uri=${encodeURIComponent(
     redirectUri
-  )}&response_type=code&scope=read&state=${authConfig.state}`;
+  )}&response_type=code&scope=${authConfig.scopes.join(' ')}&state=${authConfig.state}`;
 
-const onNavStateChange = (navState) => {
-
-    const { url } = navState;
-    // //console.log('WebView navigated to:', url);
-    if (url.startsWith(authConfig.redirect_uri)) {
-      const match = url.match(/[?&]code=([^&]+)/);
-      const code = match?.[1];
-      if (code) {
-        // //console.log('URL ', url );
-        // //console.log('OAuth code received:', code);
-        exchangeCodeForTokens(router, code, login);
-        setShowAuth(false);
-      }
-      return false
-    }
-    return true
-
-  };
-
-
-async function exchangeCodeForTokens(router, code, login) {
-  try {
+  async function exchangeCodeForTokens(code) {
+    try {
       const response = await fetch(`${authConfig.server_uri}token`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-              grant_type: 'authorization_code',
-              client_id: authConfig.clientId,
-              client_secret: authConfig.clientSecret,
-              redirect_uri: authConfig.redirect_uri,
-              code: code
-          })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: authConfig.clientId,
+          client_secret: authConfig.clientSecret,
+          redirect_uri: redirectUri,
+          code,
+        }),
       });
 
       const tokenData = await response.json();
 
       if (response.ok) {
-          await login(tokenData.access_token, tokenData.refresh_token || '');
-          router.replace('callback')
+        await login(tokenData.access_token, tokenData.refresh_token || '');
+        // No hacemos navegación manual aquí, el federado se encarga
       } else {
-          console.error('Error completo:', tokenData);
+        console.error('Error en token:', tokenData);
       }
-
-  } catch (error) {
-
-
+    } catch (error) {
       console.error('Error de red:', error);
-
-
+    }
   }
 
+  async function handleLogin() {
+    setLoading(true);
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
-}
+      if (result.type === 'success' && result.url) {
+        const match = result.url.match(/[?&]code=([^&]+)/);
+        const code = match?.[1];
 
-
+        if (code) {
+          await exchangeCodeForTokens(code);
+        } else {
+          console.error('No se encontró código en la URL de redirección.');
+        }
+      } else if (result.type === 'dismiss') {
+        console.log('El usuario canceló el login.');
+      }
+    } catch (error) {
+      console.error('Error en openAuthSessionAsync:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-
-
     <View style={styles.container}>
-
-      <Image
-        style={styles.logo}
-        source={require('../../assets/images/logowithouthbrackground.png')}
-      />
-
-
+      <Image style={styles.logo} source={require('../../assets/images/logowithouthbrackground.png')} />
       <Text style={styles.textHeader}>Login</Text>
       <Text style={styles.normalText}>Discover an amazing experience with Us</Text>
 
-
-      {!showAuth && (
-        <TouchableOpacity style={styles.loginBtn} onPress={() => setShowAuth(true)}>
+      {loading ? (
+        <ActivityIndicator size="large" color="#1FFF62" />
+      ) : (
+        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
           <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
-      )}
-
-      {showAuth && (
-        <View style={styles.webviewContainer}>
-          <ActivityIndicator style={styles.spinner} size="large" color="#1FFF62" />
-          <WebView
-            ref={webviewRef}
-            source={{ uri: authUrl }}
-            onNavigationStateChange={onNavStateChange}
-            startInLoadingState
-            javaScriptEnabled
-            domStorageEnabled
-          />
-          <TouchableOpacity style={styles.closeBtn} onPress={() => setShowAuth(false)}>
-            <Text style={styles.closeText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-
-
-
-  container_content: {
-    // backgroundColor: '#4b3ccfff',
-    width: '77%',
-    marginTop: '5%'
-
-  },
-  text_with_shadow: {
-    color: '#FFFFFF',
-    marginTop: '5%',
-    marginLeft: 'auto',
-    textShadowColor: "#FFFFFF",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 5,
-
-  },
-  view_separator: {
-    marginTop: '30%',
-    width: '100%',
-    alignItems: 'center',
-    backgroundColor: ' #1FFF62',
-    boxShadow: '0px 0px 10px 10px #1FFF62',
-    borderRadius: 20,
-    // height:'5%'
-  },
-  input: {
-    width: 300,
-    padding: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-
-  },
-  normalText: {
-    marginTop: '20%',
-    marginBottom: 100,
-    width: '70%',
-    textAlign: 'center',
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-    textShadowColor: "#1FFF62",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 10,
-  },
-
-  textHeader: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: 'bold'
-  },
-
-  logo: {
-    width: 200,
-    height: 200,
-    marginTop: '10%'
-  },
-
   container: {
-    backgroundColor: '#000000',
-    width: '100%',
-    height: '100%',
+    backgroundColor: '#000',
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  // container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  logo: { width: 200, height: 200, marginBottom: 30 },
+  textHeader: { color: '#fff', fontSize: 30, fontWeight: 'bold' },
+  normalText: {
+    color: '#fff',
+    fontSize: 16,
+    marginVertical: 20,
+    textAlign: 'center',
+    width: '80%',
+  },
   loginBtn: {
     backgroundColor: '#1FFF62',
     paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 10,
   },
-  loginText: { color: '#000', fontSize: 18, fontWeight: 'bold' },
-  webviewContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    bottom: 50,
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1FFF62',
+  loginText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  spinner: { position: 'absolute', top: '50%', left: '50%' },
-  closeBtn: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    backgroundColor: '#000',
-    padding: 12,
-    alignItems: 'center',
-  },
-  closeText: { color: '#fff', fontSize: 16 },
 });

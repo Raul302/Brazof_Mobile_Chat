@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 import { createContext, useEffect, useState } from 'react';
 
@@ -7,6 +8,8 @@ import { createContext, useEffect, useState } from 'react';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+    const router = useRouter();
+
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (tokenValue, userData) => {
     try {
+      
       setToken(tokenValue);
       setUser(userData);
       await AsyncStorage.setItem('token', tokenValue);
@@ -40,12 +44,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
+
   const logout = async () => {
     try {
       setToken(null);
       setUser(null);
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
+
+
     } catch (error) {
       console.error('Error clearing storage:', error);
     }

@@ -12,10 +12,24 @@ export default function SearchIndex() {
   
 
 
+
+  useEffect(()=>{
+
+    console.log('OJOO , ALGO CAMBIO')
+    console.log('TOKEN',token)
+    console.log('User',user)
+
+    if(token ){
+      build_info_user()
+    }
+
+  },[token])
+
+  
   useEffect(() => {
 
     // Validations here after login succesfully
-    build_info_user();
+    // build_info_user();
 
     // const timeout = setTimeout(() => {
 
@@ -143,11 +157,14 @@ export default function SearchIndex() {
       //  //console.log('result_',result_brand)
       
       
-      
+      console.log('TOKEN',token);
+      console.log('USER',user);
       
     }
   } catch ( error ) {
 
+     console.log('TOKEN',token);
+      console.log('USER',user);
     console.log('Error en callback',error.response.data);
   }
     

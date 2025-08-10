@@ -85,23 +85,17 @@ export default function NFCIndex() {
 				return;
 			}
 
-			// 1) usuario conectado consulta sus eventos [2, 4] (ejemplo)
-			// 2) por cada evento [2, 4], se listan los usuarios de dicho evento /usuarios/{evento_id}
-			// 3) se encuentra el >>>evento_id<<< que contenga al usuario consulta.usuario.id
-			// 4) si no se encuentra al usuario consulta.usuario.id, entonces no se abre nada
 			// El usuario escaneó una pulsera de otro usuario, se crea un chat
 			const nuevoChat = await fetchData('/api/chats/open-or-create', {
 				method: 'POST',
 				body: {
-					usuario_a: profile.id,
-					usuario_b: consulta.usuario.id,
-					evento_id: 1,
+					uuid_pulsera_a: pulsera.uuid,
+					uuid_pulsera_b: uid,
 				},
 			});
 
 			if (!nuevoChat.ok) {
-				console.log('Error creando chat:', nuevoChat);
-				Alert.alert('Error', 'No se pudo crear el chat');
+				Alert.alert('Error', nuevoChat.data.message);
 				return;
 			}
 			console.log('Chat creado:', nuevoChat);
@@ -110,7 +104,7 @@ export default function NFCIndex() {
 			navigation.navigate('inbox');
 			navigation.navigate('chat', {
 				chat: {
-					id: nuevoChat.id_chat,
+					id: nuevoChat.chat.id_chat,
 					name: consulta.usuario.nombre_completo,
 					user_a: profile.id,
 					user_b: consulta.usuario.id,

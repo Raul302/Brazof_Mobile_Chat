@@ -31,6 +31,7 @@ export default function ChatScreen() {
 			const msgs = await fetchData(
 				`/api/mensajes/chat/${chat.id}?chat_id=${chat.id}`,
 			);
+
 			if (!msgs.ok) {
 				console.log(
 					'No se pudieron cargar los mensajes del chat:',

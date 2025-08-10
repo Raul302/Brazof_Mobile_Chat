@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authConfig } from '../Constants/authConfig'; // o donde tengas esa config
+import { authConfig, baseUrl } from '../Constants/authConfig'; // o donde tengas esa config
 
 export async function fetchData(endpoint, options = {}) {
 	return responseData(await apiFetch(endpoint, options));
@@ -52,4 +52,82 @@ export async function apiFetch(endpoint, options = {}) {
 	}
 
 	return fetch(url, config);
+}
+
+/**
+ * Extrae y asigna imágenes para una entidad (evento o publicidad)
+ * @param {Object} entidad - El objeto entidad (evento o publicidad)
+ * @param {string} tipoEntidad - 'evento' o 'publicidad'
+ * @param {string} idField - Campo que contiene el ID ('id_evento' o 'id_publicidad')
+ * @param {string} urlField - Campo donde asignar la URL ('image_url' o 'url')
+ * @param {Object} fallbackConfig - Configuración para imagen de fallback
+ * @returns {Promise<void>}
+ */
+export async function extraerImagenEntidad(
+	entidad,
+	tipoEntidad,
+	idField,
+	urlField,
+	fallbackConfig,
+) {
+	const fallbackUrl = `https://picsum.photos/${fallbackConfig.width}/${fallbackConfig.height}?random=${entidad[idField]}`;
+
+	try {
+		const imagenes = await fetchData(
+			`/api/imagenes?tipo_entidad=${tipoEntidad}&id_entidad=${entidad[idField]}`,
+		);
+
+		// Si hay imágenes, intentar usar la primera
+		if (imagenes?.length > 0) {
+			const imageUrl = `${baseUrl}/api${imagenes[0].url}`;
+
+			// Verificar que la imagen existe
+			try {
+				const response = await fetch(imageUrl);
+				if (response.ok) {
+					entidad[urlField] = imageUrl;
+					return;
+				}
+			} catch {
+				// Si falla la verificación, usar fallback
+			}
+		}
+	} catch (error) {
+		console.error(`Error extrayendo imagen para ${tipoEntidad}:`, error);
+	}
+
+	// Usar imagen de fallback en todos los casos de error o falta de imagen
+	entidad[urlField] = fallbackUrl;
+}
+
+/**
+ * Procesa múltiples entidades para extraer sus imágenes
+ * @param {Array} entidades - Array de entidades
+ * @param {string} tipoEntidad - 'evento' o 'publicidad'
+ * @param {string} idField - Campo que contiene el ID
+ * @param {string} urlField - Campo donde asignar la URL
+ * @param {Object} fallbackConfig - Configuración para imagen de fallback
+ * @returns {Promise<void>}
+ */
+export async function procesarImagenesEntidades(
+	entidades,
+	tipoEntidad,
+	idField,
+	urlField,
+	fallbackConfig,
+) {
+	if (!entidades || entidades.length === 0) return;
+
+	// Procesar todas las entidades en paralelo para mejor performance
+	await Promise.all(
+		entidades.map((entidad) =>
+			extraerImagenEntidad(
+				entidad,
+				tipoEntidad,
+				idField,
+				urlField,
+				fallbackConfig,
+			),
+		),
+	);
 }

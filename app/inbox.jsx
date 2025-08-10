@@ -19,8 +19,22 @@ function InboxIndex() {
 
 	useEffect(() => {
 		async function cargarTodo() {
-			const chats = await fetchData(
-				`/api/chats?evento_id=1&usuario_id=${profile.id}`,
+			const eventos = await fetchData(`/api/registro_acceso/mis-eventos`);
+			let chats = [];
+
+			// Se cargan los chats de cada evento
+			for (const evento of eventos) {
+				const chats_evento = await fetchData(
+					`/api/chats?evento_id=${evento.id_evento}&usuario_id=${profile.id}`,
+				);
+				chats.push(...chats_evento);
+			}
+
+			// Se eliminan los chats duplicados (por id_chat)
+			chats = chats.filter(
+				(chat, index) =>
+					chats.findIndex((c) => c.id_chat === chat.id_chat) ===
+					index,
 			);
 
 			// Se agrega el nombre completo del usuario a cada chat
@@ -38,7 +52,7 @@ function InboxIndex() {
 			setContacts(lista);
 		}
 		cargarTodo();
-		const interval = setInterval(cargarTodo, 3000);
+		const interval = setInterval(cargarTodo, 2000);
 		return () => clearInterval(interval);
 	}, [profile.id]);
 

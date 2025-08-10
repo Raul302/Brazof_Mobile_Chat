@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager';
+import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 import { authConfig } from "../../Constants/authConfig";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -66,7 +66,9 @@ export default function NFCIndex() {
     if( codigo_pulsera ) {
       set_message_loading('Emparejando...');
 
-      save_nfc_to_user( codigo_pulsera );
+      // Formatear pulsera y formato
+      const formatted_pulsera = formatBraceletCode(codigo_pulsera)
+      save_nfc_to_user( formatted_pulsera );
 
     }
 
@@ -74,26 +76,33 @@ export default function NFCIndex() {
 
   },[ codigo_pulsera])
 
-  useEffect(() => {
+ useEffect(() => {
+  NfcManager.start()
+  // NfcManager.registerTagEvent(callback)
 
-
-    NfcManager.start()
-      .then(() => console.log('NFC Manager started'))
-      .catch(err => console.warn('NFC start error', err));
-  }, []);
+  return () => {
+    NfcManager.unregisterTagEvent().catch(() => {})
+  }
+}, [])
 
   
+function formatBraceletCode(code) {
+  // Asegura que sea string y en mayúsculas
+  const clean = code.toUpperCase().trim()
+
+  // Separa de 2 en 2
+  return clean.match(/.{1,2}/g).join(' ')
+}
 
   const save_nfc_to_user =  ( codigo ) => {
 
     const obj = { uuid : codigo , status : 'activo' , id_usuario : user.id_usuario}
 
 
-
     try {
 
        axios.post(authConfig.business_api+'pulseras',{
-      uuid : "01 8B 10 50" , status : 'activo' , id_usuario : user.id_usuario
+      uuid : codigo, status : 'activo' , id_usuario : user.id_usuario
      }, {
          headers: {
          'Content-Type': 'application/json',
@@ -101,19 +110,26 @@ export default function NFCIndex() {
          'Accept': "application/json",
        }
     }).
-      then((response) => {
+      then( (response) => {
 
-        console.log('RESPONSE nfc', response.data);
+        console.log('RESPONSE nfc', response.data.data.pulsera)  ;
+             
+        login( token , {...user,brand:response.data.data.pulsera})
+        // set_scanning(false)
+
+        router.replace('/loader')
 
       }).catch((error) => {
 
-
-        console.log('Error en nfc', error.response.data)
+        Alert.alert(error.response.data.message)
+        console.log('Error en nfc', error.response.data.message)
       })
 
     } catch ( error ) {
       console.log('ERROR EN NFC',error);
     }
+
+            set_scanning(false)
 
 
   } 
@@ -133,31 +149,18 @@ export default function NFCIndex() {
       const tag = await NfcManager.getTag();
       // console.log('Tag received:', tag);
       // console.log(' PAY ', tag.ndefMessage);
+      console.log('TAG',tag.id)
 
-      if(tag.ndefMessage == undefined){
-        set_scanning(false)
-      }
+      // if(tag.ndefMessage == undefined){
+      //   set_scanning(false)
+      // }
 
       if (tag) {
         // Alert.alert('NFC Tag Detected', JSON.stringify(tag));
 
-        if (tag.ndefMessage) {
-          tag.ndefMessage.forEach((record) => {
-            const payload = Uint8Array.from(record.payload);
-            const text = Ndef.text.decodePayload(payload);
-            // console.log('Decoded:', text);
-            // console.log('PAYLOAD:', payload);
-
-            try {
-              const json = JSON.parse(text);
-              if (json.uid) {
-                set_codigo_pulsera(json.uid)
+         if (tag.id) {
+                set_codigo_pulsera(tag.id)
               }
-            } catch (err) {
-              console.warn('Payload is not valid JSON:', err);
-            }
-          });
-        }
       } else {
         Alert.alert('No Tag Found', 'Tag is null');
       }
@@ -209,13 +212,26 @@ export default function NFCIndex() {
           :
 
           <View style={styles.view_card}>
+
+            { user?.brand[0]?.uuid ?
+            <Text style={styles.text}>
+              PULSERA DE EVENTO { user?.brand[0]?.uuid} VINCULADA ...
+            </Text>
+          :
             <Text style={styles.text}>
               PULSERA DE EVENTO NO DETECTADA ...
             </Text>
+          
+          }
 
             <Image
-              source={require('../../assets/images/central_nfc_prohibited.png')
-              }
+            
+              source={
+                user?.brand[0]?.uuid ?
+                require('../../assets/images/central_nfc.png')
+              :
+                              require('../../assets/images/central_nfc_prohibited.png')
+             }
               resizeMode='contain'
               style={{
                 width: 50,
@@ -256,7 +272,8 @@ export default function NFCIndex() {
 
           :
           <TouchableOpacity
-            onPress={(e) =>  set_codigo_pulsera(12)}
+          disabled={  user?.brand[0]?.uuid ? true : false}
+            onPress={read_nfc}
             style={{ boxShadow: '0px 0px 5px 5px #1FFF62', backgroundColor: '#000000', width: 300, height: 50, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}>
             <Text style={{ color: '#FFFFFF', fontWeight: 600 }}>Buscar dispositivo</Text>
           </TouchableOpacity>

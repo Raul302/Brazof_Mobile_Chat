@@ -12,7 +12,7 @@ export default function SearchIndex() {
   
 
 
-
+// console.log('USER',user);
   useEffect(()=>{
 
     // console.log('TOKEN',token)
@@ -137,21 +137,21 @@ export default function SearchIndex() {
       // console.log('NEW OBJ',new_obj);
       login( token , new_obj );
 
-      if( !event_id){
-        route.replace('/(tabs)/nfc')
-      }
+    
 
       // console.log('RESULT',result_brand)
       //  Si hay pulseras 
       if (result_brand[0]) {
         // //console.log('RESULT BRAND',result_brand);
-        route.replace('/(tabs)')
+        route.push('/(tabs)')
       }
       //  No hay pulseras ligadas
       else {
-        
-        route.replace('/(tabs)/nfc')
-        
+        route.push('/nfc')
+      }
+
+        if( !event_id){
+        route.push('/nfc')
       }
       //  //console.log('result_',result_brand)
       

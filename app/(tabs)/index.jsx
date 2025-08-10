@@ -1,5 +1,6 @@
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import axios from 'axios';
+import { useRouter } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
 import { Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Rating } from "react-native-ratings";
@@ -35,17 +36,34 @@ export default function HomeIndex() {
 
   const [my_events, set_my_events] = useState([{}])
 
-  // //console.log('MY EVENTS', my_events);
+
+  
+const isFocused = useIsFocused()
+const router = useRouter()
+
+useEffect(() => {
+  if (!isFocused) return;
+
+  // Verificar que user y brand estén definidos
+  if (!user || !user.brand) return;
+
+  // Validar si tiene pulsera/marca
+  if (user.brand.length === 0) {
+    router.replace('/nfc')
+    // Alert.alert(
+    //   'Acceso restringido',
+    //   'No cumples con los requisitos para acceder a esta sección.',
+    // )
+    return;
+  }
+  set_my_events([])
+  // Si todo bien, cargar datos
+  load_ads();
+  load_events();
+
+}, [isFocused, user])
 
 
-
-
-  useEffect(() => {
-
-    load_ads();
-    load_events();
-
-  }, [])
 
 
   const load_events = () => {

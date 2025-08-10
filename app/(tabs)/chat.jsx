@@ -1,9 +1,9 @@
 import { useIsFocused } from '@react-navigation/native';
 import axios from 'axios';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 import { authConfig } from '../../Constants/authConfig';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -24,15 +24,100 @@ export default function ChatIndex() {
   const navigation = useNavigation();
 
 const isFocused = useIsFocused()
-useEffect(() => {
-  if (isFocused) {
-    // El tab está activo
-     load_chats();
+
+
+const router = useRouter()
+
+
+function formatBraceletCode(code) {
+  // Asegura que sea string y en mayúsculas
+  const clean = code.toUpperCase().trim()
+
+  // Separa de 2 en 2
+  return clean.match(/.{1,2}/g).join(' ')
+}
+
+
+ useEffect( ()=>{
+
+    if( codigo_pulsera ) {
+      // set_message_loading('Emparejando...');
+
+      // Formatear pulsera y formato
+      const formatted_pulsera = formatBraceletCode(codigo_pulsera)
+      create_new_chat( formatted_pulsera );
+
+    }
+
+
+
+  },[ codigo_pulsera])
+
+ useEffect(() => {
+  NfcManager.start()
+  // NfcManager.registerTagEvent(callback)
+
+  return () => {
+    NfcManager.unregisterTagEvent().catch(() => {})
   }
-}, [isFocused])
+}, [])
+
+
+useEffect(() => {
+  if (!isFocused) return;
+
+  // Verificar que user y brand estén definidos
+  if (!user || !user.brand) return;
+
+  // Validar si tiene pulsera/marca
+  if (user.brand.length === 0) {
+    router.replace('/nfc')
+    // Alert.alert(
+    //   'Acceso restringido',
+    //   'No cumples con los requisitos para acceder a esta sección.',
+    // )
+    return;
+  }
+
+  // Si todo bien, cargar datos
+     load_chats();
+
+
+}, [isFocused, user])
 
  
 
+
+const create_new_chat = async ( pulsera_b) => {
+
+ try{
+ const obj = {
+    uuid_pulsera_a: user.brand[0].uuid,
+    uuid_pulsera_b : pulsera_b
+  }
+  
+   const ruta = `${authConfig.business_api}chats/open-or-create`;
+   console.log('RUTA',ruta)
+
+    const { data: chatResponse } = await axios.post(ruta,obj, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    const response = chatResponse.data;
+
+    navigation.navigate('individual_chat', { usuario_a: response.chat.usuario_a , usuario_b: response.chat.usuario_b , chat_id : response.chat.id_chat });
+
+
+ } catch ( error){
+  console.log(' Error creando nuevo chat' , error.response.data.message) 
+  
+ }
+
+}
 
   
 
@@ -109,25 +194,7 @@ useEffect(() => {
 
   const open_modal_scan_nfc = async () => {
     set_modal_scan_nfc(true);
-
-
-    const interval = setInterval(() => {
-
-      if (codigo_pulsera == null) {
-        scan_nfc()
-      } else {
-        return () => clearInterval(interval);
-      }
-    }, 500)
-
-
-
-
-    // while( codigo_pulsera == null) {
-
-    //   await scan_nfc()
-    // }
-
+// scan_nfc()
 
   }
 
@@ -142,53 +209,48 @@ useEffect(() => {
 
 
   const scan_nfc = async () => {
-    try {
-      // Wait for NDEF-compatible tag
-      await NfcManager.requestTechnology([NfcTech.Ndef, NfcTech.NfcA]);
+        set_modal_scan_nfc(true);
 
-      // console.log('NFC tech acquired.');
-
-      const tag = await NfcManager.getTag();
-      // console.log('Tag received:', tag);
-      // console.log(' PAY ', tag.ndefMessage);
-
-      if (tag) {
-        // Alert.alert('NFC Tag Detected', JSON.stringify(tag));
-
-        if (tag.ndefMessage) {
-          tag.ndefMessage.forEach((record) => {
-            const payload = Uint8Array.from(record.payload);
-            const text = Ndef.text.decodePayload(payload);
-            // console.log('Decoded:', text);
-
-            try {
-              const json = JSON.parse(text);
-              // console.log('UID:', json.uid);
-              if (json.uid) {
-                set_codigo_pulsera(json.uid)
-              }
-            } catch (err) {
-              console.warn('Payload is not valid JSON:', err);
-              console.log('CATCH ERROR')
-            }
-          });
+    console.log('Scanning NFC')
+  try {
+        // Wait for NDEF-compatible tag
+        await NfcManager.requestTechnology([NfcTech.Ndef, NfcTech.NfcA]);
+  
+        // console.log('NFC tech acquired.');
+  
+        const tag = await NfcManager.getTag();
+        // console.log('Tag received:', tag);
+        // console.log(' PAY ', tag.ndefMessage);
+        console.log('TAG',tag.id)
+  
+        // if(tag.ndefMessage == undefined){
+        //   set_scanning(false)
+        // }
+  
+        if (tag) {
+          // Alert.alert('NFC Tag Detected', JSON.stringify(tag));
+  
+           if (tag.id) {
+                  set_codigo_pulsera(tag.id)
+                }
+        } else {
+          Alert.alert('No Tag Found', 'Tag is null');
         }
-      } else {
-        Alert.alert('No Tag Found', 'Tag is null');
+      } catch (ex) {
+        console.warn('NFC Scan failed', ex);
+  
+        // Optional: Display a friendlier message to the user
+        Alert.alert('Scan Failed', ex?.message || 'Unknown error');
+      } finally {
+        try {
+          
+            await NfcManager.cancelTechnologyRequest(); // Clean up
+            // set_scanning(false)
+       
+        } catch (cancelEx) {
+          console.warn('Error cancelling NFC tech request', cancelEx);
+        }
       }
-    } catch (ex) {
-      console.warn('NFC Scan failed', ex);
-
-      // Optional: Display a friendlier message to the user
-      Alert.alert('Scan Failed', ex?.message || 'Unknown error');
-    } finally {
-      try {
-        await NfcManager.cancelTechnologyRequest(); // Clean up
-        // console.log('NFC tech released.');
-      } catch (cancelEx) {
-        console.warn('Error cancelling NFC tech request', cancelEx);
-      }
-    }
 
   }
 
@@ -317,7 +379,7 @@ style={styles.lastMessage}>{item.last_message}</Text>
       <View style={{ alignItems: 'center', marginBottom: '10%', backgroundColor: '' }}>
 
         <TouchableOpacity
-          onPress={(e) => open_modal_scan_nfc()}
+          onPress={scan_nfc}
           style={styles.loginBtn}>
 
           <View style={{ flexDirection: 'row' }}>

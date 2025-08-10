@@ -33,16 +33,22 @@ export default function individual_chat() {
 
   useEffect(() => {
 
-    load_messages_from_conversation(usuario_a)
+    load_messages_from_conversation(chat_id)
 
   }, [])
 
 
 
-  const load_messages_from_conversation = async (usuario_a = 0) => {
+  const load_messages_from_conversation = async (chat_id = 0) => {
 
+    console.log('CHAT_ID',chat_id);
+    
+
+    https://api.brazof.space/api/mensajes/chat/9?chat_id=9
     try {
-      const ruta = `${authConfig.business_api}mensajes?usuario=${usuario_a}`;
+      // const ruta = `${authConfig.business_api}mensajes?usuario=${usuario_a}`;
+            const ruta = `${authConfig.business_api}mensajes/chat/${chat_id}?chat_id=${chat_id}`;
+
 
       const { data: chatResponse } = await axios.get(ruta, {
         headers: {
@@ -56,6 +62,8 @@ export default function individual_chat() {
 
 
       set_messages(conversatmessages);
+
+      console.log('CONVERT',conversatmessages.data)
 
 
     } catch (error) {
@@ -104,7 +112,7 @@ export default function individual_chat() {
       setNewMessage('');
       Keyboard.dismiss();
 
-      load_messages_from_conversation(usuario_a)
+      load_messages_from_conversation(chat_id)
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);

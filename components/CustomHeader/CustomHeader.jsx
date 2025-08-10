@@ -24,11 +24,11 @@ export default function CustomHeader() {
 
     const different_header = (currenTab) => {
 
-        if (currenTab == 'chat'|| currenTab == 'profile') {
+        if (currenTab !== 'chat'|| currenTab !== 'profile') {
 
-            return false
+            return true
         }
-        return true
+        return false
 
     }
 

@@ -17,10 +17,15 @@ export default function ProfileIndex() {
 
 
   const { logout, user } = useContext(AuthContext);
+
   return (
 
     <View style={styles.container}>
 
+      {  user?.brand[0]?.uuid ?
+      <View>
+
+      
       <View style={styles.parent}>
         <View style={styles.child}>
         </View>
@@ -145,11 +150,20 @@ export default function ProfileIndex() {
 
       </View>
 
+      
+      <View style={{ justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Button title="Cerrar session" onPress={handleLogout} color="red" />
+      </View>
+      </View>
+
+      
+    :
 
       <View style={{ justifyContent: 'center', alignItems: 'center', padding: 20 }}>
         <Button title="Cerrar session" onPress={handleLogout} color="red" />
       </View>
 
+}
     </View>
 
     //   <View>

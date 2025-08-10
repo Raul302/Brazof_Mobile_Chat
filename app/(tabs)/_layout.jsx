@@ -1,8 +1,25 @@
 import { Tabs } from 'expo-router'
+import { useContext } from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import CustomHeader from '../../components/CustomHeader/CustomHeader'
+import { AuthContext } from '../../context/AuthContext'
 
 export default function TabLayout() {
+
+  const { user , login , token } = useContext( AuthContext );
+  
+
+  const thereisbrand = () => {
+
+    return true
+
+    // if( user.brand[0].uuid) {
+    //   return true
+    // } else {
+    //   return false
+    // }
+  }
+
 
   return (
 
@@ -57,6 +74,14 @@ export default function TabLayout() {
         }}
         />
 
+          <Tabs.Screen
+         
+        name="details_event"
+          options={{
+          href: null,
+        }}
+        />
+
       <Tabs.Screen
         name="search"
         options={{
@@ -88,9 +113,11 @@ export default function TabLayout() {
             <View style={{ width: 100, alignItems: 'center', justifyContent: 'center' }}>
               <Image
                 source={
-                  !focused ? require('../../assets/images/central_nfc_prohibited_with_border.png')
+
+                  
+                  thereisbrand() ? require('../../assets/images/central_nfc.png')  
                   :
-                  require('../../assets/images/central_nfc.png')
+                  require('../../assets/images/central_nfc_prohibited_with_border.png')
                 }
                 resizeMode='contain'
                 style={{
@@ -108,7 +135,7 @@ export default function TabLayout() {
 
 
       <Tabs.Screen
-        name="inbox"
+        name="chat"
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -123,7 +150,7 @@ export default function TabLayout() {
                 />
               <Text style={{
                 fontSize: 10, color: focused ? '#FFFFFF' : '#676D75'
-              }}>Inbox </Text>
+              }}>Chat </Text>
             </View>
           )
         }}

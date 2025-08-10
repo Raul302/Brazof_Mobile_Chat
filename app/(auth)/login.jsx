@@ -1,58 +1,150 @@
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { authConfig } from '../../Constants/authConfig';
+import { AuthContext } from '../../context/AuthContext';
+
+
+
+function buildAuthUrl() {
+
+
+  const params = new URLSearchParams({
+    client_id: authConfig.clientId,
+    redirect_urii: authConfig.redirect_uri,
+    response_type: authConfig.response_type,
+    scope: authConfig.scopes[0],
+    state: authConfig.state,
+  });
+
+  return `${authConfig.oauth_server}/login?${params.toString()}`;
+}
+async function exchangeCodeForTokens(router, code, login) {
+  try {
+    const response = await fetch(`${authConfig.server_uri}token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+         'Accept': 'application/json'
+
+
+      },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        client_id: authConfig.clientId,
+        client_secret: authConfig.clientSecret,
+        redirect_uri: authConfig.redirect_uri,
+        code: code
+      })
+    });
+
+
+
+
+
+    const tokenData = await response.json();
+
+
+    if (response.ok) {
+      await login(tokenData.access_token, tokenData.refresh_token || '');
+    } else {
+      console.error('Error completo:', tokenData);
+    }
+  } catch (error) {
+    console.error('Error de red:', error);
+  }
+
+
+}
+
+
 
 export default function Login() {
   const router = useRouter();
   const webviewRef = useRef(null);
   const [showAuth, setShowAuth] = useState(false);
+  const { login, user , token, loading } = useContext(AuthContext);
 
-  // const clientId = '2';
-  // const redirectUri = 'brazof://callback';
-  const authUrl = `${authConfig.server_uri}login?client_id=${authConfig.clientId}&redirect_uri=${encodeURIComponent(
-    authConfig.redirect_uri
+
+  const clientId = '2';
+  const redirectUri = 'brazof://callback';
+  const authUrl = `${authConfig.server_uri}login?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+    redirectUri
   )}&response_type=code&scope=read&state=${authConfig.state}`;
 
-  const onNavStateChange = (navState) => {
-    const { url } = navState;
-    console.log('WebView navigated to:', url);
+const onNavStateChange = (navState) => {
 
+    const { url } = navState;
+    // //console.log('WebView navigated to:', url);
     if (url.startsWith(authConfig.redirect_uri)) {
       const match = url.match(/[?&]code=([^&]+)/);
       const code = match?.[1];
       if (code) {
-        console.log('URL ', url );
-        console.log('OAuth code received:', code);
-        exchangeCodeForToken(code);
+        // //console.log('URL ', url );
+        // //console.log('OAuth code received:', code);
+        exchangeCodeForTokens(router, code, login);
         setShowAuth(false);
-        router.replace('/(tabs)');
       }
       return false
     }
-
     return true
+
   };
 
-  const exchangeCodeForToken = async (code) => {
-    // TODO: call your token exchange endpoint here
-    console.log('Exchanging code for token:', code);
-  };
+
+async function exchangeCodeForTokens(router, code, login) {
+  try {
+      const response = await fetch(`${authConfig.server_uri}token`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+              grant_type: 'authorization_code',
+              client_id: authConfig.clientId,
+              client_secret: authConfig.clientSecret,
+              redirect_uri: authConfig.redirect_uri,
+              code: code
+          })
+      });
+
+      const tokenData = await response.json();
+
+      if (response.ok) {
+          await login(tokenData.access_token, tokenData.refresh_token || '');
+          router.replace('callback')
+      } else {
+          console.error('Error completo:', tokenData);
+      }
+
+  } catch (error) {
+
+
+      console.error('Error de red:', error);
+
+
+  }
+
+
+}
+
+
 
   return (
 
-    
+
     <View style={styles.container}>
 
-       <Image
+      <Image
         style={styles.logo}
         source={require('../../assets/images/logowithouthbrackground.png')}
       />
 
 
-       <Text style={styles.textHeader}>Login</Text>
-       <Text style={styles.normalText}>Discover an amazing experience with Us</Text>
+      <Text style={styles.textHeader}>Login</Text>
+      <Text style={styles.normalText}>Discover an amazing experience with Us</Text>
 
 
       {!showAuth && (
@@ -67,7 +159,7 @@ export default function Login() {
           <WebView
             ref={webviewRef}
             source={{ uri: authUrl }}
-            onShouldStartLoadWithRequest={onNavStateChange}
+            onNavigationStateChange={onNavStateChange}
             startInLoadingState
             javaScriptEnabled
             domStorageEnabled
@@ -84,11 +176,11 @@ export default function Login() {
 const styles = StyleSheet.create({
 
 
-  
+
   container_content: {
     // backgroundColor: '#4b3ccfff',
     width: '77%',
-    marginTop:'5%'
+    marginTop: '5%'
 
   },
   text_with_shadow: {
@@ -104,9 +196,9 @@ const styles = StyleSheet.create({
     marginTop: '30%',
     width: '100%',
     alignItems: 'center',
-     backgroundColor: ' #1FFF62',
+    backgroundColor: ' #1FFF62',
     boxShadow: '0px 0px 10px 10px #1FFF62',
-    borderRadius:20,
+    borderRadius: 20,
     // height:'5%'
   },
   input: {
@@ -118,13 +210,13 @@ const styles = StyleSheet.create({
   },
   normalText: {
     marginTop: '20%',
-    marginBottom:100,
+    marginBottom: 100,
     width: '70%',
     textAlign: 'center',
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: 'bold',
-      textShadowColor: "#1FFF62",
+    textShadowColor: "#1FFF62",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 10,
   },
@@ -175,5 +267,5 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
   },
-  closeText: { color: '#fff', fontSize: 16 },
+  closeText: { color: '#fff', fontSize: 16 },
 });

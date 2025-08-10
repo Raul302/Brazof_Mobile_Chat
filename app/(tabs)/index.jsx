@@ -1,11 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useRef, useState } from "react";
+import axios from 'axios';
+import { useContext, useEffect, useRef, useState } from "react";
 import { Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Rating } from "react-native-ratings";
+import { authConfig } from "../../Constants/authConfig";
 import { obj_ads } from "../../Constants/data_carrousel";
+import { AuthContext } from "../../context/AuthContext";
 
 
-export default function HomeIndex(  ) {
+export default function HomeIndex() {
 
 
 
@@ -27,6 +30,80 @@ export default function HomeIndex(  ) {
   const [modal_visible, set_modal_visible] = useState(false);
   const [modal_rating, set_modal_rating] = useState(false);
   const [current_ad, set_current_ad] = useState({});
+
+  const { user, token } = useContext(AuthContext);
+
+  const [my_events, set_my_events] = useState([{}])
+
+  // //console.log('MY EVENTS', my_events);
+
+
+
+
+  useEffect(() => {
+
+    load_ads();
+    load_events();
+
+  }, [])
+
+
+  const load_events = () => {
+
+
+
+    axios.get(authConfig.business_api + 'registro_acceso/mis-eventos', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': "application/json",
+      }
+    }).
+      then((response) => {
+        if (response.data.data) {
+          set_my_events(response.data.data);
+
+          // //console.log('Response',response.data.data)
+        }
+
+        // //console.log('Response from index EVENTOS PUBLICIDAD', response.data);
+
+      }).catch((error) => {
+        console.log('Axios index ERROR ',error.response.data);
+
+
+        //console.log('Error en Index tabs', error)
+      })
+
+
+    // https://api.brazof.space/api/registro_acceso/mis-eventos
+
+  }
+
+
+  const load_ads = () => {
+
+    // console.log('Ejecutando ads')
+
+
+    axios.get(authConfig.business_api + 'publicidad/perfil/Usuario', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': "application/json",
+      }
+    }).
+      then((response) => {
+
+        // //console.log('Response from index EVENTOS PUBLICIDAD', response);
+
+      }).catch((error) => {
+
+
+        //console.log('Error en Index tabs', error)
+      })
+
+  }
 
   useEffect(() => {
 
@@ -80,6 +157,7 @@ export default function HomeIndex(  ) {
 
   }
 
+
   // Render dot Indicador
   const renderDotIndicators = () => {
 
@@ -89,27 +167,27 @@ export default function HomeIndex(  ) {
         // if the active index == index 
 
         if (active_index == index) {
-          return (<Text 
+          return (<Text
             key={index}
             style={{
-            backgroundColor: '#1FFF62',
-            height: 10,
-            width: 10,
-            borderRadius: 5,
-            marginHorizontal: 2,
-            // opacity:0.5
-          }}> </Text>)
+              backgroundColor: '#1FFF62',
+              height: 10,
+              width: 10,
+              borderRadius: 5,
+              marginHorizontal: 2,
+              // opacity:0.5
+            }}> </Text>)
         } else {
-          return (<Text 
+          return (<Text
             key={index}
             style={{
-            backgroundColor: '#000000',
-            height: 10,
-            width: 10,
-            borderRadius: 5,
-            marginHorizontal: 2,
-            // opacity:0.5
-          }}> </Text>)
+              backgroundColor: '#000000',
+              height: 10,
+              width: 10,
+              borderRadius: 5,
+              marginHorizontal: 2,
+              // opacity:0.5
+            }}> </Text>)
 
         }
 
@@ -117,9 +195,10 @@ export default function HomeIndex(  ) {
     )
   }
 
+  
   const set_rating = (element) => {
 
-    console.log(' ELEMENT', element);
+    // //console.log(' ELEMENT', element);
   }
 
   const send_rating = () => {
@@ -171,17 +250,18 @@ export default function HomeIndex(  ) {
             // onFinishRating={this.ratingCompleted}
             // style={{ paddingVertical: 10 }}
             />
-            <View style={{ 
-                  boxShadow: '0px 0px 5px 5px #1FFF62',
-                  borderRadius:15,
-                  marginTop: '5%', marginBottom: '5%' }}>
+            <View style={{
+              boxShadow: '0px 0px 5px 5px #1FFF62',
+              borderRadius: 15,
+              marginTop: '5%', marginBottom: '5%'
+            }}>
 
               {/* <Shadow distance={5} startColor={'#1FFF62'} endColor={'#ff00ff10'} offset={[0, 0]}> */}
-                <TouchableOpacity
-                  onPress={send_rating}
-                  style={{ backgroundColor: '#000000', width: screenWidth / 5, height: undefined, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}>
-                  <Text style={{ color: '#FFFFFF', fontWeight: 600 }}>Enviar</Text>
-                </TouchableOpacity>
+              <TouchableOpacity
+                onPress={send_rating}
+                style={{ backgroundColor: '#000000', width: screenWidth / 5, height: undefined, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}>
+                <Text style={{ color: '#FFFFFF', fontWeight: 600 }}>Enviar</Text>
+              </TouchableOpacity>
               {/* </Shadow> */}
             </View>
           </View>
@@ -235,109 +315,173 @@ export default function HomeIndex(  ) {
       </View>
 
 
-
-
-
       <ScrollView style={{ marginTop: '10%' }}>
 
-        {scroll_data.map((scroll,index) => (
+        {my_events.map((scroll, index) => (
 
-          <View key={'view_'+index}>
+          <View key={'view_' + index}>
             {/* Card  */}
-            <View 
-            key={'card_'+index} style={styles.card}>
+            <View
+              key={'card_' + index} style={styles.card}>
 
-                  <Pressable onPress={(e) => navigation.navigate('details',{
-                    item:scroll
-                  })}>
-              {/* View image background */}
-              <ImageBackground
-              key={'imagebackground_'+index} source={require('../../assets/images/pal_norte_background.jpg')
-              } resizeMode="cover" style={styles.background_img}>
 
-                {/* View top ranking */}
 
-                <View key={'ranking_'+index} style={styles.ranking_top}>
-                  <Pressable
-                  key={'pressable_'+index}
-                    onPress={(e) => open_rating_modal(scroll)}
-                    style={{ width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable onPress={() => {
+                navigation.navigate('details_event', { item: scroll });
+              }}>
+                {/* View image background */}
+                <ImageBackground
+                  key={'imagebackground_' + index} 
+                  source={
+                  scroll.cha
+                    ? { uri: scroll.imagenes[0].url }
+                    : require('../../assets/images/baile.jpg')
+                }
+ resizeMode="cover" style={styles.background_img}>
 
-                    <View key={'view_2_'+index}>
-                      <Image
-                      key={'image_'+index}
-                        source={require('../../assets/images/star.png')
-                        }
-                        style={{
-                          width: 18,
-                          height: 18,
-                          top: -1,
-                          zIndex:99
-                        }}
-                      />
-                    </View>
-                    <View key={'view_3_'+index}>
-                      <Text style={{ color: '#FFFFFF' }}>
+                    { scroll.status_calculado == "inactivo"&&
 
-                        4.1 (25,000) </Text>
-                    </View>
-                  </Pressable>
-                </View>
-
-                <View style={styles.details_bottom}>
                     
-                  <View style={{ flexDirection: 'column', paddingTop: 10, paddingLeft: 10 }}>
-                    <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>Torreon , Coahuila</Text>
-                    <View style={{ flexDirection: "row", paddingTop: 10, paddingRight: 20, justifyContent: 'space-between' }}>
-                      <View style={{ paddingRight: 10, borderColor: '#676D75', borderRightWidth: 0.5 }}>
-                        <Text style={{ color: '#676D75' }}> COST </Text>
-                        <Text style={{ color: '#FFFFFF', paddingTop: 5 }}> $ 300 - 1800 </Text>
+               <View
+  style={{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    zIndex: 100,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }}
+>
+  <View style={{ position: 'relative' }}>
+    <Text style={[styles.comingSoonText, { position: 'absolute', color: 'black', left: 1, top: 1 }]}>
+      Coming Soon
+    </Text>
+    <Text style={[styles.comingSoonText, { position: 'absolute', color: 'black', left: -1, top: -1 }]}>
+      Coming Soon
+    </Text>
+    <Text style={styles.comingSoonText}>Coming Soon</Text>
+  </View>
+</View>
+
+                    }
+
+
+                  {/* View top ranking */}
+
+                  <View key={'ranking_' + index} style={styles.ranking_top}>
+                    <Pressable
+                      key={'pressable_' + index}
+                      onPress={(e) => open_rating_modal(scroll)}
+                      style={{ width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+
+                      <View key={'view_2_' + index}>
+                        <Image
+                          key={'image_' + index}
+                          source={require('../../assets/images/star.png')
+                          }
+                          style={{
+                            width: 18,
+                            height: 18,
+                            top: -1,
+                            zIndex: 99
+                          }}
+                        />
                       </View>
+                      <View key={'view_3_' + index}>
+                        <Text style={{ color: '#FFFFFF' }}>
 
-                      <View style={{ paddingRight: 10, paddingLeft: 10, borderColor: '#676D75', borderRightWidth: 0.5 }}>
-                        <Text style={{ color: '#676D75' }}> PLACE </Text>
-
-                        <View style={{ flexDirection: 'row', paddingTop: 5, justifyContent: 'center', alignItems: 'center' }}>
-                          <Image
-                            source={require('../../assets/images/position.png')}
-                            // resizeMode='contain'
-                            style={{
-                              width: 20,
-                              height: 20,
-                              tintColor: '#37F4FA'
-                            }}
-                          />
-
-                          <Text style={{ color: '#FFFFFF' }}> Torr , Coah </Text>
-                        </View>
+                          4.1 (25,000) </Text>
                       </View>
-
-                      <View style={{ paddingLeft: 10, borderColor: '#676D75' }}>
-                        <Text style={{ color: '#676D75' }}> AVAILABLE </Text>
-                        <View style={{ flexDirection: 'row', paddingTop: 5, justifyContent: 'center', alignItems: 'center' }}>
-                          <Image
-                            source={require('../../assets/images/calender-check.png')}
-                            // resizeMode='contain'
-                            style={{
-                              width: 20,
-                              height: 20,
-                              tintColor: '#37F4FA'
-                            }}
-                          />
-                          <Text style={{ color: '#FFFFFF', paddingTop: 5 }}> Oct 24 - 26 </Text>
-                        </View>
-
-                      </View>
-
-                    </View>
+                    </Pressable>
                   </View>
 
-                </View>
+               <View style={[styles.details_bottom, { width: screenWidth * 0.9 }]}>
+  <View style={{ flexDirection: 'column', paddingTop: 10, paddingHorizontal: 10 }}>
+    <Text
+      style={{
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        flexWrap: 'wrap',
+        flexShrink: 1,
+        maxWidth: screenWidth * 0.8,
+      }}
+      numberOfLines={2}
+      ellipsizeMode="tail"
+    >
+      {scroll.ubicacion}
+    </Text>
+
+    <View
+      style={{
+        flexDirection: "row",
+        paddingTop: 10,
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 10,
+      }}
+    >
+      {/* COST */}
+      <View style={{ flex: 1, paddingRight: 5, borderRightWidth: 0.5, borderColor: '#676D75' }}>
+        <Text style={{ color: '#676D75' }}>COST</Text>
+        <Text style={{ color: '#FFFFFF', paddingTop: 5 }}>$300 - 1800</Text>
+      </View>
+
+      {/* PLACE */}
+      <View style={{ flex: 1, paddingHorizontal: 5, borderRightWidth: 0.5, borderColor: '#676D75' }}>
+        <Text style={{ color: '#676D75' }}>PLACE</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 5 }}>
+          <Image
+            source={require('../../assets/images/position.png')}
+            style={{ width: 20, height: 20, tintColor: '#37F4FA', marginRight: 5 }}
+          />
+          <Text
+            style={{
+              color: '#FFFFFF',
+              flexShrink: 1,
+              flex: 1,
+            }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {scroll.ubicacion}
+          </Text>
+        </View>
+      </View>
+
+      {/* AVAILABLE */}
+      <View style={{ flex: 1, paddingLeft: 5 }}>
+        <Text style={{ color: '#676D75' }}>AVAILABLE</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 5 }}>
+          <Image
+            source={require('../../assets/images/calender-check.png')}
+            style={{ width: 20, height: 20, tintColor: '#37F4FA', marginRight: 5 }}
+          />
+          <Text
+            style={{
+              color: '#FFFFFF',
+              flexShrink: 1,
+              flex: 1,
+            }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {scroll.fecha_inicio}
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
 
 
 
-              </ImageBackground >
-                  </Pressable>
+                </ImageBackground >
+              </Pressable>
               {/* End View image background */}
 
 
@@ -370,6 +514,19 @@ export default function HomeIndex(  ) {
 
 // Adding styles
 const styles = StyleSheet.create({
+
+  comingSoonText: {
+  color: '#FFFFFF',
+  fontSize: 32,
+  fontWeight: 'bold',
+  textAlign: 'center',
+  textTransform: 'uppercase',
+  textShadowColor: '#1FFF62',
+
+  textShadowOffset: { width: 2, height: 2 },
+  textShadowRadius: 4,
+  maxWidth: Dimensions.get('window').width * 0.9,
+},
 
   // Modal styles
   centeredView: {
@@ -409,10 +566,11 @@ const styles = StyleSheet.create({
 
   details_bottom: {
     backgroundColor: '#000000',
-    width: '100%',
+    // width: Dimensions.get('window').width / 1.2,
     height: '40%',
     borderTopLeftRadius: 20,
-    borderTopRightRadius: 20
+    borderTopRightRadius: 20,
+    
   },
   ranking_top: {
     backgroundColor: '#000000',

@@ -83,16 +83,12 @@ export default function NFCIndex() {
   }, []);
 
   
-  console.log('USER',user)
 
   const save_nfc_to_user =  ( codigo ) => {
 
     const obj = { uuid : codigo , status : 'activo' , id_usuario : user.id_usuario}
 
-    console.log('Token',token);
-    console.log('Codigo',codigo);
-    console.log('status','activo');
-    console.log('id_usuario',user.id_usuario);
+
 
     try {
 

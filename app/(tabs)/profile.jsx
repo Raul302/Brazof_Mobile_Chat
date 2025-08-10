@@ -10,14 +10,13 @@ export default function ProfileIndex() {
   const navigation = useNavigation();
 
   const handleLogout = async () => {
-    await logout();
-    router.replace('/(auth)/login'); // o simplemente 'login' según tu estructura de rutas
+    // await logout();
+    router.replace('/closing_session'); // o simplemente 'login' según tu estructura de rutas
   }
 
 
 
   const { logout, user } = useContext(AuthContext);
-  console.log(' USER ', user);
   return (
 
     <View style={styles.container}>

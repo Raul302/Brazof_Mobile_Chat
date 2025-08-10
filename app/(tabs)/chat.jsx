@@ -1,4 +1,6 @@
+import { useIsFocused } from '@react-navigation/native';
 import axios from 'axios';
+import { useNavigation } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager';
@@ -19,22 +21,20 @@ export default function ChatIndex() {
   const [ conversations_formated , set_conversations_formated ] = useState([])
 
   const [loading , set_loading ] = useState(false);
+  const navigation = useNavigation();
+
+const isFocused = useIsFocused()
+useEffect(() => {
+  if (isFocused) {
+    // El tab está activo
+     load_chats();
+  }
+}, [isFocused])
+
+ 
 
 
-  // useEffect(() => {
-  //   NfcManager.start()
-  //     .then(() => console.log('NFC Manager started'))
-  //     .catch(err => console.warn('NFC start error', err));
-  // }, []);
-
-  useEffect(() => {
-
-    load_chats();
-
-
-  }, [])
-
-
+  
 
  const load_chats = async () => {
   set_loading(true);
@@ -131,6 +131,16 @@ export default function ChatIndex() {
 
   }
 
+     const showname = (name) => {
+
+        const array_name = name.split(" ");
+
+        const formated_name = (array_name[0].charAt(0).toUpperCase() + array_name[1].charAt(0).toUpperCase())
+
+        return formated_name ?? 'US'
+    }
+
+
   const scan_nfc = async () => {
     try {
       // Wait for NDEF-compatible tag
@@ -185,14 +195,44 @@ export default function ChatIndex() {
  
   const renderItem = ({ item }) => (
     <TouchableOpacity 
+    key={'touchable'+item.id_chat}
      onPress={() => {
-                navigation.navigate('individual_chat');
+      // console.log('ITEMX',item)
+        navigation.navigate('individual_chat', { usuario_a: item.usuario_a , usuario_b: item.usuario_b , chat_id : item.id_chat });
+                // load_messages_from_conversation(item.usuario_a)
               }}
     style={styles.contactItem}>
-      <Text style={styles.avatar}>👤</Text>
-      <View style={styles.contactInfo}>
-        <Text style={styles.contactName}>{item.nombre_completo}</Text>
-        <Text style={styles.lastMessage}>{item.last_message}</Text>
+
+      <View
+          key={'view_'+item.id_chat}
+      style={{
+        borderColor: '#1FFF62',
+        borderWidth: 3,
+        backgroundColor: '#FFFFFF', height: 50, width: 50, borderRadius: 100, justifyContent: 'center', alignItems: 'center'
+      }}>
+        <Text 
+            key={'text'+item.id_chat}
+style={{ fontWeight: '600', color: '#000000' }}>
+          {item?.nombre_completo &&
+            [showname(item?.nombre_completo)]
+
+          }
+        </Text>
+      </View>
+
+      <Text 
+          key={'avatar_'+item.id_chat}
+style={styles.avatar}></Text>
+      <View 
+          key={'view_contact_info'+item.id_chat}
+
+style={styles.contactInfo}>
+        <Text 
+            key={'fullname_'+item.id_chat}
+style={styles.contactName}>{item.nombre_completo}</Text>
+        <Text 
+            key={'last_message'+item.id_chat}
+style={styles.lastMessage}>{item.last_message}</Text>
 
 
             {/* { id: '1', name: 'María', lastMessage: '¿Nos vemos mañana?' }, */}

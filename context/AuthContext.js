@@ -53,6 +53,8 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
 
+       router.replace('/(auth)/login'); // o simplemente 'login' según tu estructura de rutas
+
 
     } catch (error) {
       console.error('Error clearing storage:', error);

@@ -74,6 +74,7 @@ export default function TabLayout() {
         }}
         />
 
+
           <Tabs.Screen
          
         name="details_event"
@@ -89,6 +90,17 @@ export default function TabLayout() {
           href: null,
         }}
         />
+
+          <Tabs.Screen
+         
+        name="individual_chat"
+          options={{
+          href: null,
+        }}
+        />
+
+
+        
 
 
       <Tabs.Screen

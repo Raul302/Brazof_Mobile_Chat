@@ -15,9 +15,7 @@ export default function SearchIndex() {
 
   useEffect(()=>{
 
-    console.log('OJOO , ALGO CAMBIO')
-    console.log('TOKEN',token)
-    console.log('User',user)
+    // console.log('TOKEN',token)
 
     if(token ){
       build_info_user()
@@ -76,6 +74,7 @@ export default function SearchIndex() {
       });
 
       const event_id = get_event_id_active.data.data.find( event => event.status_calculado == 'activo' ?  event : null);
+      
 
 
 
@@ -157,14 +156,11 @@ export default function SearchIndex() {
       //  //console.log('result_',result_brand)
       
       
-      console.log('TOKEN',token);
-      console.log('USER',user);
-      
+     
     }
   } catch ( error ) {
 
-     console.log('TOKEN',token);
-      console.log('USER',user);
+
     console.log('Error en callback',error.response.data);
   }
     

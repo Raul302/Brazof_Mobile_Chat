@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileIndex() {
-	const { profile, pulseras, loading, logout } = useAuth();
+	const { profile, pulsera, loading, logout } = useAuth();
 
 	async function handleLogout() {
 		await logout();
@@ -53,8 +53,8 @@ export default function ProfileIndex() {
 
 					<Text style={styles.label}>Pulsera:</Text>
 					<Text style={styles.value}>
-						{pulseras?.length === 1
-							? `TAG(${pulseras[0].id_pulsera}) ${pulseras[0]?.uuid}`
+						{pulsera
+							? `TAG(${pulsera.id_pulsera}) ${pulsera.uuid}`
 							: 'Sin TAG asociado'}
 					</Text>
 				</View>

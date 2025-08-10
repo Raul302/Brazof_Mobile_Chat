@@ -2,12 +2,12 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function CustomHeader() {
-	const { profile, pulseras, loading } = useAuth();
+	const { profile, pulsera, loading } = useAuth();
 
 	const nombre = !loading ? profile?.nombre_completo : 'Cargando...';
 	const tag = !loading
-		? pulseras?.length === 1
-			? `TAG ${pulseras[0]?.uuid}`
+		? pulsera
+			? `TAG ${pulsera.uuid}`
 			: 'Sin TAG asociado'
 		: 'Cargando...';
 

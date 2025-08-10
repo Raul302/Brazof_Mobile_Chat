@@ -7,7 +7,7 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
 	const [profile, setProfile] = useState(null);
-	const [pulseras, setPulseras] = useState([]);
+	const [pulsera, setPulsera] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const router = useRouter();
 
@@ -26,16 +26,16 @@ export function AuthProvider({ children }) {
 		}
 	}
 
-	async function loadPulseras() {
+	async function loadPulsera() {
 		try {
 			const response = await apiFetch('/api/usuarios/me/pulseras');
 			if (response.ok) {
 				const data = await responseData(response);
-				console.log('Pulseras cargadas:', data.length);
-				setPulseras(data);
+				console.log('Pulsera cargada:', data ? 'Sí' : 'No');
+				setPulsera(data.length > 0 ? data[0] : null);
 			}
 		} catch (error) {
-			console.error('Error cargando pulseras:', error);
+			console.error('Error cargando pulsera:', error);
 		}
 	}
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
 			await AsyncStorage.setItem('access_token', accessToken);
 			await AsyncStorage.setItem('refresh_token', refreshToken || '');
 			await loadProfile();
-			await loadPulseras();
+			await loadPulsera();
 			router.replace('/');
 		} catch (error) {
 			console.error('Error en login:', error);
@@ -66,12 +66,12 @@ export function AuthProvider({ children }) {
 
 	useEffect(() => {
 		loadProfile();
-		loadPulseras();
+		loadPulsera();
 	}, []);
 
 	return (
 		<AuthContext.Provider
-			value={{ profile, pulseras, loading, loadPulseras, login, logout }}
+			value={{ profile, pulsera, loading, loadPulsera, login, logout }}
 		>
 			{children}
 		</AuthContext.Provider>

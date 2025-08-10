@@ -12,33 +12,35 @@ import { apiFetch, fetchData } from '../../contexts/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function UsuariosScreen() {
-	const { pulseras: pulserasContext, loadPulseras } = useAuth();
+	const { pulsera: pulseraContext, loadPulsera } = useAuth();
 	const [usuarios, setUsuarios] = useState([]);
 	const [pulseras, setPulseras] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [enlazandoId, setEnlazandoId] = useState(null);
-	const lastPulserasRef = useRef([]);
+	const lastPulseraRef = useRef(null);
 
-	// Se reacciona a cambios en el contexto de pulseras (la pulsera del usuario actual)
+	// Se reacciona a cambios en el contexto de pulsera (la pulsera del usuario actual)
 	useEffect(() => {
-		function stringify(arr) {
+		function stringify(pulsera) {
 			return JSON.stringify(
-				arr.map((p) => ({
-					id: p.id_pulsera,
-					uuid: p.uuid,
-					id_usuario: p.id_usuario,
-				})),
+				pulsera
+					? {
+							id: pulsera.id_pulsera,
+							uuid: pulsera.uuid,
+							id_usuario: pulsera.id_usuario,
+						}
+					: null,
 			);
 		}
 
-		const prev = stringify(lastPulserasRef.current);
-		const next = stringify(pulserasContext);
+		const prev = stringify(lastPulseraRef.current);
+		const next = stringify(pulseraContext);
 
 		if (prev !== next) {
-			lastPulserasRef.current = pulserasContext;
+			lastPulseraRef.current = pulseraContext;
 			cargarDatos();
 		}
-	}, [pulserasContext, cargarDatos]);
+	}, [pulseraContext, cargarDatos]);
 
 	useEffect(() => {
 		cargarDatos();
@@ -56,12 +58,12 @@ export default function UsuariosScreen() {
 			const pulseras = await fetchData('/api/pulseras');
 			console.log('Se cargaron pulseras:', pulseras.length);
 			setPulseras(pulseras);
-			loadPulseras(); // Actualizar contexto de pulseras
+			loadPulsera(); // Actualizar contexto de pulsera
 		} catch (err) {
 			console.error(err);
 		}
 		setLoading(false);
-	}, [loadPulseras]);
+	}, [loadPulsera]);
 
 	function formatUID(uid) {
 		return (

@@ -53,5 +53,3 @@ export async function apiFetch(endpoint, options = {}) {
 
 	return fetch(url, config);
 }
-
-// oauthFetch, apiNegocioFetch

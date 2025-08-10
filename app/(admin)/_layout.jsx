@@ -4,7 +4,7 @@ import CustomHeader from '../../components/CustomHeader/CustomHeader';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminLayout() {
-	const { pulseras } = useAuth();
+	const { pulsera } = useAuth();
 
 	return (
 		<View style={{ backgroundColor: '#000000', flex: 1 }}>
@@ -83,7 +83,7 @@ export default function AdminLayout() {
 								>
 									<Image
 										source={
-											pulseras.length > 0
+											pulsera
 												? require('../../assets/images/central_nfc.png')
 												: require('../../assets/images/central_nfc_prohibited_with_border.png')
 										}

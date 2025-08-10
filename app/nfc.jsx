@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function NFCIndex() {
 	const navigation = useNavigation();
 	const [scanning, set_scanning] = useState(false);
-	const { profile, pulseras, loadPulseras } = useAuth();
+	const { profile, pulsera, loadPulsera } = useAuth();
 
 	useEffect(() => {
 		NfcManager.start()
@@ -55,11 +55,11 @@ export default function NFCIndex() {
 			console.log('Pulsera encontrada: ', consulta.ok ? 'Sí' : 'No');
 
 			// Se comprueba si la pulsera ya está asociada al usuario
-			const asociada = pulseras.some((p) => p.uuid === uid);
+			const asociada = pulsera && pulsera.uuid === uid;
 			console.log('Pulsera asociada: ', asociada ? 'Sí' : 'No');
 
 			// La pulsera no está asociada a ningún usuario y el usuario actual no tiene pulsera
-			if (pulseras.length === 0 && !consulta.ok) {
+			if (!pulsera && !consulta.ok) {
 				let response = await apiFetch('/api/pulseras', {
 					method: 'POST',
 					body: { uuid: uid, id_usuario: profile.id },
@@ -77,7 +77,7 @@ export default function NFCIndex() {
 			}
 
 			// La pulsera no está asociada a ningún usuario y el usuario actual tiene pulsera
-			if (!consulta.ok && pulseras.length > 0) {
+			if (!consulta.ok && pulsera) {
 				Alert.alert(
 					'Pulsera no asociada',
 					'Esta pulsera no está asociada a ningún usuario. Por favor, contacta con el administrador.',
@@ -100,7 +100,7 @@ export default function NFCIndex() {
 			});
 
 			if (!nuevoChat.ok) {
-				// Error de evento con if...
+				console.log('Error creando chat:', nuevoChat);
 				Alert.alert('Error', 'No se pudo crear el chat');
 				return;
 			}
@@ -123,7 +123,7 @@ export default function NFCIndex() {
 			try {
 				await NfcManager.cancelTechnologyRequest();
 				set_scanning(false);
-				loadPulseras();
+				loadPulsera();
 				console.log('NFC tech released.');
 			} catch (cancelEx) {
 				console.warn('Error cancelling NFC tech request', cancelEx);
@@ -139,10 +139,10 @@ export default function NFCIndex() {
 						<Text style={styles.text}>ESCANEANDO...</Text>
 						<ActivityIndicator />
 					</View>
-				) : pulseras.length > 0 ? (
+				) : pulsera ? (
 					<View style={styles.view_card}>
 						<Text style={styles.text}>PULSERA ASOCIADA</Text>
-						<Text style={styles.text}>TAG {pulseras[0].uuid}</Text>
+						<Text style={styles.text}>TAG {pulsera.uuid}</Text>
 						<Image
 							source={require('../assets/images/central_nfc.png')}
 							resizeMode="contain"

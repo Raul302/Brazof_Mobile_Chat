@@ -113,10 +113,11 @@ const create_new_chat = async ( pulsera_b) => {
 
 
  } catch ( error){
-  console.log(' Error creando nuevo chat' , error.response.data.message) 
+  Alert.alert(error.response.data.message)
   
  }
 
+ set_codigo_pulsera(null);
 }
 
   

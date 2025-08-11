@@ -8,7 +8,6 @@ export default function UsuarioIndex() {
       // console.log('User',usuario);
     
 
-      console.log('DIRECCION',useLocalSearchParams())
   const router = useRouter()
 
 

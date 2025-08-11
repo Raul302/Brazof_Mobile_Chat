@@ -109,7 +109,6 @@ const show_info = async ( codigo_pulsera ) => {
   try {
 
       const ruta = authConfig.business_api + 'pulseras/uuid/' + codigo_pulsera
-      console.log('RUTA',ruta);
       
       const get_user_info = await axios.get(ruta, {
         headers: {

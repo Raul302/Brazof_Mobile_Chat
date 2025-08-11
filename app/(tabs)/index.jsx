@@ -49,7 +49,6 @@ const isFocused = useIsFocused()
 const router = useRouter()
 
 useEffect(() => {
-  console.log('ME EJECUTE INDEX TAB')
   if (!isFocused) return;
 
   // Verificar que user y brand estén definidos

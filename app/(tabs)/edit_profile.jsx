@@ -6,7 +6,6 @@ export default function ProfileIndex() {
 
 
     const { logout , user  } = useContext(AuthContext);
-    console.log( ' USER ', user);
 return(
 
       <View style={styles.container}>

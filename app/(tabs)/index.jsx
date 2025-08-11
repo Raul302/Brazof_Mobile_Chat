@@ -9,6 +9,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { fetchData, procesarImagenesEntidades } from "../../context/apiClient";
 
 
+
 export default function HomeIndex() {
 
 
@@ -48,6 +49,7 @@ const isFocused = useIsFocused()
 const router = useRouter()
 
 useEffect(() => {
+  console.log('ME EJECUTE INDEX TAB')
   if (!isFocused) return;
 
   // Verificar que user y brand estén definidos
@@ -67,7 +69,7 @@ useEffect(() => {
   load_ads();
   load_events();
 
-}, [isFocused, user])
+}, [isFocused])
 
 	// Función para cargar ratings de eventos
 	async function cargarRatingsEventos(eventos) {
@@ -145,10 +147,9 @@ useEffect(() => {
 	}
 
   
+  const load_ratings  = async () => {
 
-	useEffect(() => {
-		async function cargarDatos() {
-				try {
+    	try {
 					// Solo cargar ratings si hay eventos válidos
 					if (my_events && my_events.length > 0 && my_events[0].id_evento) {
 						cargarRatingsEventos(my_events);
@@ -184,9 +185,11 @@ useEffect(() => {
 				// En caso de error, usar array vacío para publicidades
 				setPublicidades([]);
 			}
-		}
-		cargarDatos();
-	}, []);
+
+    	
+  }
+
+
 
 	// useEffect separado para cargar ratings cuando my_events cambie
 	useEffect(() => {
@@ -210,7 +213,7 @@ useEffect(() => {
       then((response) => {
         if (response.data.data) {
           set_my_events(response.data.data);
-
+          load_ratings()
           // //console.log('Response',response.data.data)
         }
 
@@ -253,6 +256,9 @@ useEffect(() => {
 
   }
 
+
+  // UseEffect to move carrousel automatic
+
 	useEffect(() => {
 		if (publicidades.length === 0) return;
 
@@ -271,6 +277,7 @@ useEffect(() => {
 		}, 4000);
 
 		return () => clearInterval(interval);
+
 	}, [active_index, publicidades.length]);
 
   const open_rating_modal = async (item) => {

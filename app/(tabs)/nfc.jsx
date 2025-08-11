@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 import { authConfig } from "../../Constants/authConfig";
 import { AuthContext } from "../../context/AuthContext";
@@ -9,6 +9,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 
 export default function NFCIndex() {
+  const navigation = useNavigation();
 
   const router = useRouter();
 
@@ -68,7 +69,15 @@ export default function NFCIndex() {
 
       // Formatear pulsera y formato
       const formatted_pulsera = formatBraceletCode(codigo_pulsera)
-      save_nfc_to_user( formatted_pulsera );
+      if(user.rol){
+        if(user.rol !='Usuario'){
+          
+          show_info(formatted_pulsera)
+
+        } else {
+          save_nfc_to_user( formatted_pulsera );
+        }
+      }
 
     }
 
@@ -94,6 +103,51 @@ function formatBraceletCode(code) {
   return clean.match(/.{1,2}/g).join(' ')
 }
 
+
+const show_info = async ( codigo_pulsera ) => {
+
+  try {
+
+      const ruta = authConfig.business_api + 'pulseras/uuid/' + codigo_pulsera
+      console.log('RUTA',ruta);
+      
+      const get_user_info = await axios.get(ruta, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': "application/json",
+        },
+      });
+      
+
+      // action to get ID 
+      const result_info_user = get_user_info.data?.data ?? null;
+
+
+      console.log('USERINFO',result_info_user)
+    navigation.navigate('usuario_info',{
+      contacto_emergencia : result_info_user.usuario.contacto_emergencia,
+      direccion : result_info_user.usuario.direccion,
+      email : result_info_user.usuario.email,
+      nombre_completo : result_info_user.usuario.nombre_completo,
+      rol : result_info_user.usuario.rol,
+      uuid : result_info_user.uuid,
+      telefono: result_info_user.usuario.telefono
+    }
+    );
+      
+
+      console.log('result_info_user',result_info_user);
+
+
+  } catch ( error ) {
+    console.log('ERROR',error);
+    console.log('Error' , error.response.data.message)
+    Alert.alert(error.response.data.message)
+    set_scanning(false)
+    set_codigo_pulsera()
+  }
+}
   const save_nfc_to_user =  ( codigo ) => {
 
     const obj = { uuid : codigo , status : 'activo' , id_usuario : user.id_usuario}

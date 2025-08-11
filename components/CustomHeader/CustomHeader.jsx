@@ -1,5 +1,5 @@
-import { useContext } from "react";
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useContext, useState } from "react";
+import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,17 @@ export default function CustomHeader() {
 
       const router = useRouter();
 
+
+        const handleLogout = async () => {
+    // await logout();
+    router.replace('/closing_session'); // o simplemente 'login' según tu estructura de rutas
+  }
+
+
+        const [visible, setVisible] = useState(false);
+
+  const toggleMenu = () => setVisible(!visible);
+  
     const navigation = useNavigation();
 
     const screenWidth = Dimensions.get('window').width;
@@ -21,6 +32,11 @@ export default function CustomHeader() {
 
     const { user } = useContext(AuthContext);
 
+
+    const handleOptionPress = (option) => {
+    console.log('Selected:', option);
+    setVisible(false);
+  };
 
     const different_header = (currenTab) => {
 
@@ -52,6 +68,27 @@ export default function CustomHeader() {
             :
             styles.custom_header_two
         }>
+   {/* Menú modal */}
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVisible(false)}
+      >
+        {/* Área semitransparente para cerrar el menú al tocar fuera */}
+        <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
+
+          {/* Menú en sí */}
+          <View style={styles.dropdown}>
+            <TouchableOpacity  style={{justifyContent:'center',alignItems:'center'}} onPress={() => handleLogout()}>
+            <Text style={ {backgroundColor:'red' , paddingLeft:20 , paddingRight:20 , paddingTop:10,paddingBottom:10,borderRadius:10,color:'white',justifyContent:'center' , alignItems:'center'}}>Cerrar session</Text>
+            </TouchableOpacity>
+          
+          </View>
+
+        </Pressable>
+      </Modal>
+
             {
                 different_header(currenTab)
                     ?
@@ -73,12 +110,15 @@ export default function CustomHeader() {
                             borderWidth: 3,
                             backgroundColor: '#FFFFFF', height: 50, width: 50, borderRadius: 100, justifyContent: 'center', alignItems: 'center'
                         }}>
+                            <TouchableOpacity onPress={toggleMenu} style={styles.button}>
+
                             <Text style={{ fontWeight: '600', color: '#000000' }}>
                                 {user?.name &&
                                     [showname(user?.name)]
-
+                                    
                                 }
                             </Text>
+                        </TouchableOpacity>
                         </View>
                         {/* <Image
                 source={require('../../assets/images/profile_image.png')
@@ -137,6 +177,8 @@ export default function CustomHeader() {
 
                     </View>
             }
+
+         
         </View>
 
     )
@@ -144,6 +186,34 @@ export default function CustomHeader() {
 }
 
 const styles = StyleSheet.create({
+     container: {
+    marginTop: 100,
+    alignItems: 'center',
+  },
+
+ 
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdown: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    elevation: 10,
+    width: 200,
+  },
+  option: {
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#333',
+  },
     arrow_left: {
  width: 25,
         height: 25

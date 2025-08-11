@@ -1,12 +1,17 @@
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'; // <-- Agregado
+import { useIsFocused } from '@react-navigation/native';
 import axios from 'axios';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { useLocalSearchParams } from 'expo-router';
+import _ from 'lodash';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,41 +20,32 @@ import {
 } from 'react-native';
 import { authConfig } from '../../Constants/authConfig';
 import { AuthContext } from '../../context/AuthContext';
-var _ = require('lodash');
 
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-
+dayjs.extend(relativeTime);
 
 export default function individual_chat() {
-
-  dayjs.extend(relativeTime)
-
-  const { token, user, login, logout } = useContext(AuthContext)
-
+  const { token, user } = useContext(AuthContext);
   const { usuario_a, usuario_b, chat_id } = useLocalSearchParams();
+  const [messages, set_messages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const flatListRef = useRef(null);
+  const tabBarHeight = useBottomTabBarHeight(); // <-- Obtener altura del TabBar
 
-  const [messages, set_messages] = useState([{}])
 
+
+
+  const isFocused = useIsFocused()
+  
   useEffect(() => {
+   load_messages_from_conversation(chat_id)
+  }, [isFocused])
+;
 
-    load_messages_from_conversation(chat_id)
+  const load_messages_from_conversation = async (chat_id) => {
 
-  }, [])
-
-
-
-  const load_messages_from_conversation = async (chat_id = 0) => {
-
-    console.log('CHAT_ID',chat_id);
-    
-
-    https://api.brazof.space/api/mensajes/chat/9?chat_id=9
+    // console.log('MANDE CARGAR MENSAJES');
     try {
-      // const ruta = `${authConfig.business_api}mensajes?usuario=${usuario_a}`;
-            const ruta = `${authConfig.business_api}mensajes/chat/${chat_id}?chat_id=${chat_id}`;
-
-
+      const ruta = `${authConfig.business_api}mensajes/chat/${chat_id}?chat_id=${chat_id}`;
       const { data: chatResponse } = await axios.get(ruta, {
         headers: {
           'Content-Type': 'application/json',
@@ -57,42 +53,27 @@ export default function individual_chat() {
           'Accept': 'application/json',
         },
       });
-
       const conversatmessages = _.orderBy(chatResponse.data, 'timestamp', 'ASC');
-
-
       set_messages(conversatmessages);
-
-      console.log('CONVERT',conversatmessages.data)
-
-
     } catch (error) {
-      console.log('ERROR INDIVIDUAL CHATS', error)
+
+        Alert.alert(error.response.data.message)
+      // console.log('ERROR INDIVIDUAL CHATS', error);
     }
-
-
-
-  }
-
-  //  const [messages, setMessages] = useState([
-  //   { id: '1', text: 'Hola, ¿cómo estás?', sender: 'otro' },
-  //   { id: '2', text: '¡Todo bien! ¿Y tú?', sender: 'yo' },
-  // ]);
-
-  const [newMessage, setNewMessage] = useState('');
-  const flatListRef = useRef(null);
+  };
 
   const sendMessage = async () => {
+    if (!newMessage.trim()) return;
+
+    const obj = {
+      id_remitente: user.id_usuario,
+      id_destinatario: user.id_usuario == usuario_a ? usuario_b : usuario_a,
+      contenido: newMessage,
+      chat_id: chat_id,
+    };
 
     try {
-
-      const obj = {
-        id_remitente: user.id_usuario,
-        id_destinatario: user.id_usuario == usuario_a ? usuario_b : usuario_a,
-        contenido: newMessage,
-        chat_id: chat_id
-      }
-      const sending_message = await axios.post(authConfig.business_api + 'mensajes', obj, {
+      await axios.post(`${authConfig.business_api}mensajes`, obj, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -100,73 +81,54 @@ export default function individual_chat() {
         },
       });
 
-      if (!newMessage.trim()) return;
-
-      const message = {
-        id: Date.now().toString(),
-        text: newMessage,
-        sender: 'yo',
-      };
-
-      // setMessages(prev => [...prev, message]);
       setNewMessage('');
       Keyboard.dismiss();
-
-      load_messages_from_conversation(chat_id)
+      await load_messages_from_conversation(chat_id);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
 
     } catch (error) {
-      console.log('ERRROR', error)
+      console.log('Error al enviar mensaje:', error);
     }
   };
 
-  const renderItem = ({ item , index }) => {
+  const renderItem = ({ item }) => {
 
+          // console.log('Convertsatmessages',item)
     const isMe = item.id_remitente === user.id_usuario;
     return (
       <View
-        key={'view_'+index+item.id_mensaje}
         style={[
           styles.messageContainer,
           isMe ? styles.messageRight : styles.messageLeft,
         ]}
       >
-        <Text key={'_contenido' +index+ item.id_mensaje} style={styles.messageText}>{item.contenido}</Text>
-        <Text key={'_contenido_fecha' + index+item.id_mensaje} style={{
-          fontSize: 11,
-          color: '#1a3c26',
-        }}>
+        <Text style={styles.messageText}>{item.contenido}</Text>
+        <Text style={styles.messageTime}>
           {dayjs(item.timestamp).subtract(6, 'hour').fromNow()}
-
-          {/* {dayjs(item.timestamp).fromNow()} */}
-
         </Text>
       </View>
     );
   };
 
-
   return (
-
-    <View style={styles.container_father}>
-
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
-        keyboardVerticalOffset={80}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderItem}
-          keyExtractor={item => item.id_mensaje}
-          contentContainerStyle={styles.messagesList}
+          keyExtractor={item => item.id_mensaje?.toString()}
+          contentContainerStyle={[styles.messagesList, { paddingBottom: tabBarHeight + 70 }]} // <-- Padding dinámico
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { marginBottom: tabBarHeight }]}>
           <TextInput
             style={styles.input}
             placeholder="Escribe tu mensaje..."
@@ -174,27 +136,22 @@ export default function individual_chat() {
             value={newMessage}
             onChangeText={setNewMessage}
             onSubmitEditing={sendMessage}
+            returnKeyType="send"
           />
           <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
             <Text style={styles.sendButtonText}>Enviar</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-
-    </View>
-
+    </SafeAreaView>
   );
-};
+}
 
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#e6f9ec', // fondo verde muy claro
-  },
-  container_father: {
     backgroundColor: '#2E2E2F',
-    height: (Dimensions.get('window').height - 100)
   },
   container: {
     flex: 1,
@@ -202,6 +159,7 @@ const styles = StyleSheet.create({
   messagesList: {
     padding: 10,
     flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   messageContainer: {
     padding: 10,
@@ -210,41 +168,44 @@ const styles = StyleSheet.create({
     maxWidth: '75%',
   },
   messageLeft: {
-    backgroundColor: '#c5f1d3', // verde claro para "otro"
+    backgroundColor: '#c5f1d3',
     alignSelf: 'flex-start',
   },
   messageRight: {
-    backgroundColor: '#a3e4b3', // verde un poco más fuerte para "yo"
+    backgroundColor: '#a3e4b3',
     alignSelf: 'flex-end',
     borderColor: '#1FFF62',
-    borderWidth: 2
+    borderWidth: 2,
   },
   messageText: {
     fontSize: 16,
     color: '#1a3c26',
   },
+  messageTime: {
+    fontSize: 11,
+    color: '#1a3c26',
+    marginTop: 4,
+  },
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
-    height: 100,
     borderTopWidth: 1,
     borderTopColor: '#b0e6c1',
     backgroundColor: '#ffffff',
     alignItems: 'center',
-    // top:-50,
   },
   input: {
     flex: 1,
     backgroundColor: '#f1fdf5',
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     borderRadius: 20,
     fontSize: 16,
     color: '#1a3c26',
   },
   sendButton: {
     marginLeft: 10,
-    backgroundColor: '#34C759', // verde botón
+    backgroundColor: '#34C759',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 20,
@@ -254,7 +215,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-
-
-

@@ -39,10 +39,13 @@ export default function HomeIndex() {
   const [loadingUserRating, set_loadingUserRating] = useState(false);
   const ratingOpacity = useRef(new Animated.Value(0)).current;
 
+  const [rating_to_detail,set_rating_to_detail] = useState([])
+
   const { user, token } = useContext(AuthContext);
 
   const [my_events, set_my_events] = useState([{}])
 
+  const [ loading , set_loading ] = useState(true); 
 
   
 const isFocused = useIsFocused()
@@ -65,8 +68,9 @@ useEffect(() => {
   }
   set_my_events([])
   // Si todo bien, cargar datos
-  load_ads();
   load_events();
+  load_ratings()
+
 
 }, [isFocused])
 
@@ -88,10 +92,14 @@ useEffect(() => {
 				const ratingsResponse = await fetchData(
 					`/api/event-ratings/evento/${evento.id_evento}`,
 				);
+
+        set_rating_to_detail(ratingsResponse)
+        // console.log('rating Response',ratingsResponse);
 				if (ratingsResponse.ok && ratingsResponse.statistics) {
 					ratings[evento.id_evento] = {
 						average: ratingsResponse.statistics.average_rating || 0,
 						total: ratingsResponse.statistics.total_ratings || 0,
+            // distribution:ratingsResponse.statistics.distribution || 0,
 					};
 				}
 			} catch (error) {
@@ -103,6 +111,7 @@ useEffect(() => {
 			}
 		}
 		setRatingsData(ratings);
+    set_loading(false)
 	}
 
 	// Refrescar rating de un único evento desde la API
@@ -175,14 +184,17 @@ useEffect(() => {
 					);
 
 					setPublicidades(ads);
+          // set_loading(false)
 				} else {
 					// Si no hay publicidades, usar array vacío
 					setPublicidades([]);
+          set_loading(false)
 				}
 			} catch (err) {
 				console.error('Error cargando datos:', err);
 				// En caso de error, usar array vacío para publicidades
 				setPublicidades([]);
+        set_loading(false)
 			}
 
     	
@@ -191,11 +203,11 @@ useEffect(() => {
 
 
 	// useEffect separado para cargar ratings cuando my_events cambie
-	useEffect(() => {
-		if (my_events && my_events.length > 0 && my_events[0].id_evento) {
-			cargarRatingsEventos(my_events);
-		}
-	}, [my_events]);
+	// useEffect(() => {
+	// 	if (my_events && my_events.length > 0 && my_events[0].id_evento) {
+	// 		cargarRatingsEventos(my_events);
+	// 	}
+	// }, [my_events]);
 
 
   const load_events = () => {
@@ -212,7 +224,8 @@ useEffect(() => {
       then((response) => {
         if (response.data.data) {
           set_my_events(response.data.data);
-          load_ratings()
+          cargarRatingsEventos( response.data.data)
+          // load_ratings()
           // //console.log('Response',response.data.data)
         }
 
@@ -231,29 +244,6 @@ useEffect(() => {
   }
 
 
-  const load_ads = () => {
-
-    // console.log('Ejecutando ads')
-
-
-    axios.get(authConfig.business_api + 'publicidad/perfil/Usuario', {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Accept': "application/json",
-      }
-    }).
-      then((response) => {
-
-        // //console.log('Response from index EVENTOS PUBLICIDAD', response);
-
-      }).catch((error) => {
-
-
-        //console.log('Error en Index tabs', error)
-      })
-
-  }
 
 
   // UseEffect to move carrousel automatic
@@ -276,6 +266,8 @@ useEffect(() => {
 		}, 4000);
 
 		return () => clearInterval(interval);
+
+
 
 	}, [active_index, publicidades.length]);
 
@@ -421,6 +413,14 @@ useEffect(() => {
   return (
     <View style={styles.container}>
 
+      {
+        loading ?
+
+        <ActivityIndicator />
+
+        :
+        <View style={styles.container}>
+
 
       {/* Modal rating  */}
 
@@ -541,7 +541,7 @@ useEffect(() => {
 
 
               <Pressable onPress={() => {
-                navigation.navigate('details_event', { item: scroll });
+                navigation.navigate('details_event', { item: scroll , rating: rating_to_detail.statistics });
               }}>
                 {/* View image background */}
                 <ImageBackground
@@ -717,6 +717,10 @@ useEffect(() => {
 
 
 
+
+        </View>
+        
+      }
     </View>
   )
 

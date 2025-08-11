@@ -16,7 +16,16 @@ export default function ProfileIndex() {
 
 
 
-  const { logout, user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
+
+  // Genera iniciales del nombre (misma lógica que en CustomHeader)
+  const showname = (name) => {
+    if (!name) return 'US';
+    const array_name = name.split(" ");
+    const firstInitial = array_name[0]?.charAt(0)?.toUpperCase() || 'U';
+    const secondInitial = array_name[1]?.charAt(0)?.toUpperCase() || 'S';
+    return firstInitial + secondInitial;
+  }
 
   return (
 
@@ -31,12 +40,21 @@ export default function ProfileIndex() {
         </View>
       </View>
       <View style={{ top: -90, borderRadius: 300, width: Dimensions.get('window').width, justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ borderRadius: 200 }}>
-          <Image
-            source={require('../../assets/images/Avatar.png')}
-            resizeMode="cover"
-            style={{ borderRadius: 200, margin: 10, width: 150, height: 150 }}
-          />
+        <View
+          style={{
+            borderColor: '#1FFF62',
+            borderWidth: 3,
+            backgroundColor: '#FFFFFF',
+            width: 150,
+            aspectRatio: 1,
+            borderRadius: 75,
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Text style={{ fontWeight: '600', color: '#000000', fontSize: 40 }}>
+            {user?.name && showname(user?.name)}
+          </Text>
         </View>
         <Text style={{ fontSize: 24, fontWeight: 600, justifyContent: 'center', alignItems: 'center', color: '#FFF' }}>
           {user?.name}
@@ -108,7 +126,6 @@ export default function ProfileIndex() {
               <Text style={{ color: '#438FFF' }}>English</Text>
             </View>
           </View>
-
 
 
 

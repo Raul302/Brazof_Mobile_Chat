@@ -44,6 +44,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Actualiza el usuario en memoria y persistencia
+  const updateUser = async (partialOrFullUser) => {
+    try {
+      const nextUser = typeof partialOrFullUser === 'function'
+        ? partialOrFullUser(user)
+        : { ...(user || {}), ...(partialOrFullUser || {}) };
+      setUser(nextUser);
+      await AsyncStorage.setItem('user', JSON.stringify(nextUser));
+      return nextUser;
+    } catch (error) {
+      console.error('Error updating user in storage:', error);
+      return null;
+    }
+  };
+
 
 
   const logout = async () => {
@@ -62,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, logout }}>
+    <AuthContext.Provider value={{ token, user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

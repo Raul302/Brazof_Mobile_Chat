@@ -39,6 +39,24 @@ export async function apiFetch(endpoint, options = {}) {
 		headers['Authorization'] = `Bearer ${token}`;
 	}
 
+	// Adjuntar CSRF automáticamente para endpoints oauth no-GET
+	const needsCsrf = endpoint.startsWith('/oauth/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+	if (needsCsrf) {
+		try {
+			const csrfRes = await fetch(`${authConfig.api_url}/oauth/csrf-token`, {
+				method: 'GET',
+				headers: { Accept: 'application/json' },
+			});
+			const csrfJson = await csrfRes.json().catch(() => ({}));
+			if (csrfJson && csrfJson.token) {
+				headers['X-CSRF-TOKEN'] = csrfJson.token;
+				headers['X-Requested-With'] = 'XMLHttpRequest';
+			}
+		} catch (_e) {
+			// Si falla obtener CSRF, continuar sin él; el servidor responderá con detalle
+		}
+	}
+
 	// Si es GET y hay params, convertirlos en query string
 	if (method === 'GET' && options.params) {
 		const query = new URLSearchParams(options.params).toString();

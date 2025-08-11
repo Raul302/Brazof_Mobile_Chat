@@ -2,7 +2,7 @@ import { useIsFocused, useNavigation } from "@react-navigation/native";
 import axios from 'axios';
 import { useRouter } from "expo-router";
 import { useContext, useEffect, useRef, useState } from "react";
-import { Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Rating } from "react-native-ratings";
 import { authConfig } from "../../Constants/authConfig";
 import { AuthContext } from "../../context/AuthContext";
@@ -17,7 +17,7 @@ export default function HomeIndex() {
   const flatListRef = useRef(0);
   const STAR_IMAGE = require('../../assets/images/star_fill.png')
   const [publicidades, setPublicidades] = useState([]);
-
+  const [ratingsData, setRatingsData] = useState({});
 
 
   // Get Dimensions
@@ -32,6 +32,11 @@ export default function HomeIndex() {
   const [modal_visible, set_modal_visible] = useState(false);
   const [modal_rating, set_modal_rating] = useState(false);
   const [current_ad, set_current_ad] = useState({});
+  const [selected_event, set_selected_event] = useState(null);
+  const [current_rating, set_current_rating] = useState(0);
+  const [userRating, set_userRating] = useState(null);
+  const [loadingUserRating, set_loadingUserRating] = useState(false);
+  const ratingOpacity = useRef(new Animated.Value(0)).current;
 
   const { user, token } = useContext(AuthContext);
 
@@ -64,9 +69,93 @@ useEffect(() => {
 
 }, [isFocused, user])
 
+	// Función para cargar ratings de eventos
+	async function cargarRatingsEventos(eventos) {
+		// Validar que eventos no esté vacío y tenga elementos válidos
+		if (!eventos || eventos.length === 0) {
+			return;
+		}
+		
+		const ratings = {};
+		for (const evento of eventos) {
+			// Validar que el evento tenga id_evento
+			if (!evento || !evento.id_evento) {
+				continue;
+			}
+			
+			try {
+				const ratingsResponse = await fetchData(
+					`/api/event-ratings/evento/${evento.id_evento}`,
+				);
+				if (ratingsResponse.ok && ratingsResponse.statistics) {
+					ratings[evento.id_evento] = {
+						average: ratingsResponse.statistics.average_rating || 0,
+						total: ratingsResponse.statistics.total_ratings || 0,
+					};
+				}
+			} catch (error) {
+				console.error(
+					`Error cargando ratings para evento ${evento.id_evento}:`,
+					error,
+				);
+				ratings[evento.id_evento] = { average: 0, total: 0 };
+			}
+		}
+		setRatingsData(ratings);
+	}
+
+	// Refrescar rating de un único evento desde la API
+	async function recargarRatingEvento(id_evento) {
+		if (!id_evento) return;
+		try {
+			const ratingsResponse = await fetchData(
+				`/api/event-ratings/evento/${id_evento}`,
+			);
+			if (ratingsResponse.ok && ratingsResponse.statistics) {
+				setRatingsData((prev) => ({
+					...prev,
+					[id_evento]: {
+						average: ratingsResponse.statistics.average_rating || 0,
+						total: ratingsResponse.statistics.total_ratings || 0,
+					},
+				}));
+			}
+		} catch (error) {
+			console.error(`Error recargando rating para evento ${id_evento}:`, error);
+		}
+	}
+
+	// Cargar rating del usuario para un evento específico
+	async function cargarMiRating(id_evento) {
+		if (!id_evento || !user?.id_usuario) return;
+		try {
+			const url = `/api/event-ratings/evento/${id_evento}/user?user_id=${user.id_usuario}`;
+			const res = await fetchData(url);
+			if (res?.ok) {
+				const valor = typeof res.rating === 'number' ? res.rating : 0;
+				set_userRating(res);
+				set_current_rating(valor);
+			} else {
+				set_userRating(null);
+				set_current_rating(0);
+			}
+		} catch (e) {
+			console.error(`Error cargando mi rating para evento ${id_evento}:`, e);
+		}
+	}
+
+  
+
 	useEffect(() => {
 		async function cargarDatos() {
-			try {
+				try {
+					// Solo cargar ratings si hay eventos válidos
+					if (my_events && my_events.length > 0 && my_events[0].id_evento) {
+						cargarRatingsEventos(my_events);
+					} else {
+						console.log('Esperando eventos válidos antes de cargar ratings');
+					}
+
 				// Cargar publicidades
 				const ads = await fetchData('/api/publicidad');
 
@@ -98,6 +187,13 @@ useEffect(() => {
 		}
 		cargarDatos();
 	}, []);
+
+	// useEffect separado para cargar ratings cuando my_events cambie
+	useEffect(() => {
+		if (my_events && my_events.length > 0 && my_events[0].id_evento) {
+			cargarRatingsEventos(my_events);
+		}
+	}, [my_events]);
 
 
   const load_events = () => {
@@ -177,10 +273,26 @@ useEffect(() => {
 		return () => clearInterval(interval);
 	}, [active_index, publicidades.length]);
 
-  const open_rating_modal = (item) => {
-
+  const open_rating_modal = async (item) => {
+    set_selected_event(item);
     set_modal_rating(true);
-
+    set_userRating(null);
+    set_current_rating(0);
+    // Reset fade and show loader
+    ratingOpacity.setValue(0);
+    set_loadingUserRating(true);
+    // Fetch user's rating
+    await cargarMiRating(item?.id_evento);
+    // Ensure a minimal loader time to avoid flicker
+    const MIN_DELAY_MS = 100;
+    setTimeout(() => {
+      set_loadingUserRating(false);
+      Animated.timing(ratingOpacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    }, MIN_DELAY_MS);
   }
   const open_modal = (item) => {
     set_current_ad(item);
@@ -242,16 +354,51 @@ useEffect(() => {
 	}
 
   
-  const set_rating = (element) => {
-
-    // //console.log(' ELEMENT', element);
+  const set_rating = (rating) => {
+    set_current_rating(rating);
+    console.log('Rating seleccionado:', rating);
   }
 
-  const send_rating = () => {
+  const send_rating = async () => {
+    if (!selected_event || !current_rating) {
+      console.log('No hay evento seleccionado o rating');
+      return;
+    }
 
-    // URL - API UPDATING RATING
+    try {
+      console.log('Enviando rating:', current_rating, 'para evento:', selected_event.id_evento);
+      
+      const response = await fetchData('/api/event-ratings/', {
+        method: 'POST',
+        body: {
+          id_evento: selected_event.id_evento,
+          id_usuario: user.id_usuario,
+          rating: current_rating,
+          comentario: '', // Puedes agregar un campo de comentario después si quieres
+        },
+      });
 
-    set_modal_rating(false);
+      if (response.ok) {
+        console.log('Rating enviado exitosamente');
+        // Re-cargar el rating real desde la API para este evento
+        await recargarRatingEvento(selected_event.id_evento);
+        // Re-cargar mi propio rating para reflejar cambios inmediatos
+        await cargarMiRating(selected_event.id_evento);
+
+        // Cerrar modal y resetear
+        set_modal_rating(false);
+        set_current_rating(0);
+        set_selected_event(null);
+        
+      } else {
+        console.error('Error al enviar rating:', response);
+        alert('Error al enviar el rating. Inténtalo de nuevo.');
+      }
+      
+    } catch (error) {
+      console.error('Error enviando rating:', error);
+      alert('Error de conexión. Inténtalo de nuevo.');
+    }
   }
   // Scroll carrousel horizontal
   const scroll_carrousel = (event) => {
@@ -280,22 +427,39 @@ useEffect(() => {
         }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ backgroundColor: '#000000', borderWidth: 0.5, borderColor: '#1FFF62', borderRadius: 10, height: '15%', width: '50%', alignItems: 'center', justifyContent: 'center' }}>
-            <Rating
-              type='custom'
-              ratingImage={STAR_IMAGE}
-              ratingColor='#37F4FA'
-              // ratingBackgroundColor='#000000'
-              selectedColor='#000cb6ff'
-              tintColor="#000000"
-              // tintColor="red"
-              // ratingTextColor=""
-              ratingCount={5}
-              imageSize={18}
-              showRating
-              onFinishRating={set_rating}
-            // onFinishRating={this.ratingCompleted}
-            // style={{ paddingVertical: 10 }}
-            />
+            <Pressable
+              onPress={() => set_modal_rating(false)}
+              style={{ position: 'absolute', top: 6, right: 8, padding: 6 }}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>X</Text>
+            </Pressable>
+            {loadingUserRating ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 12 }}>
+                <ActivityIndicator color="#1FFF62" size="small" />
+                <Text style={{ color: '#FFFFFF', marginTop: 6, fontSize: 12 }}>Cargando...</Text>
+              </View>
+            ) : (
+              <Animated.View style={{ opacity: ratingOpacity }}>
+                <Rating
+                  type='custom'
+                  ratingImage={STAR_IMAGE}
+                  ratingColor='#37F4FA'
+                  // ratingBackgroundColor='#000000'
+                  selectedColor='#000cb6ff'
+                  tintColor="#000000"
+                  // tintColor="red"
+                  // ratingTextColor=""
+                  ratingCount={5}
+                  imageSize={18}
+                  showRating
+                  key={`${selected_event?.id_evento ?? 'none'}-${userRating?.rating ?? 0}`}
+                  startingValue={userRating?.rating ?? 0}
+                  onFinishRating={set_rating}
+                // onFinishRating={this.ratingCompleted}
+                // style={{ paddingVertical: 10 }}
+                />
+              </Animated.View>
+            )}
             <View style={{
               boxShadow: '0px 0px 5px 5px #1FFF62',
               borderRadius: 15,
@@ -437,8 +601,8 @@ useEffect(() => {
                       </View>
                       <View key={'view_3_' + index}>
                         <Text style={{ color: '#FFFFFF' }}>
-
-                          4.1 (25,000) </Text>
+			{ratingsData[scroll.id_evento]?.average || '0.0'} ({ratingsData[scroll.id_evento]?.total || '0'})
+                        </Text>
                       </View>
                     </Pressable>
                   </View>

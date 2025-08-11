@@ -158,6 +158,7 @@ useEffect(() => {
 
 				// Cargar publicidades
 				const ads = await fetchData('/api/publicidad');
+				console.log('Publicidades',ads)
 
 				if (ads && ads.length > 0) {
 					// Asegurar compatibilidad de IDs antes de procesar imágenes

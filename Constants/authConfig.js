@@ -16,6 +16,7 @@ export const authConfig = {
   business_api: 'https://api.brazof.space/api/',
   redirect_uri: 'brazof://callback', // Configúralo en tu Laravel también
   server_uri:'https://api.brazof.space/oauth/',
+  api_url: 'https://api.brazof.space',
   scopes: ['read'], // Usa el mismo scope que usabas en web
   usePKCE: false, // Laravel no soporta PKCE, desactívalo
   serviceConfiguration: {

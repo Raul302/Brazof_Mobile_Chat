@@ -5,8 +5,8 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Rating } from "react-native-ratings";
 import { authConfig } from "../../Constants/authConfig";
-import { obj_ads } from "../../Constants/data_carrousel";
 import { AuthContext } from "../../context/AuthContext";
+import { fetchData, procesarImagenesEntidades } from "../../context/apiClient";
 
 
 export default function HomeIndex() {
@@ -16,6 +16,7 @@ export default function HomeIndex() {
   const navigation = useNavigation();
   const flatListRef = useRef(0);
   const STAR_IMAGE = require('../../assets/images/star_fill.png')
+  const [publicidades, setPublicidades] = useState([]);
 
 
 
@@ -63,7 +64,40 @@ useEffect(() => {
 
 }, [isFocused, user])
 
+	useEffect(() => {
+		async function cargarDatos() {
+			try {
+				// Cargar publicidades
+				const ads = await fetchData('/api/publicidad');
 
+				if (ads && ads.length > 0) {
+					// Asegurar compatibilidad de IDs antes de procesar imágenes
+					ads.forEach((ad) => {
+						ad.id = ad.id_publicidad;
+					});
+
+					// Procesar imágenes de publicidades usando la función optimizada
+					await procesarImagenesEntidades(
+						ads,
+						'publicidad',
+						'id_publicidad',
+						'url',
+						{ width: 400, height: 200 },
+					);
+
+					setPublicidades(ads);
+				} else {
+					// Si no hay publicidades, usar array vacío
+					setPublicidades([]);
+				}
+			} catch (err) {
+				console.error('Error cargando datos:', err);
+				// En caso de error, usar array vacío para publicidades
+				setPublicidades([]);
+			}
+		}
+		cargarDatos();
+	}, []);
 
 
   const load_events = () => {
@@ -123,34 +157,25 @@ useEffect(() => {
 
   }
 
-  useEffect(() => {
+	useEffect(() => {
+		if (publicidades.length === 0) return;
 
-    // if activeIndex === last item carrousel so return to initial point
+		let interval = setInterval(() => {
+			if (active_index === publicidades.length - 1) {
+				flatListRef.current.scrollToIndex({
+					index: 0,
+					animation: true,
+				});
+			} else {
+				flatListRef.current.scrollToIndex({
+					index: active_index + 1,
+					animation: true,
+				});
+			}
+		}, 4000);
 
-    // else activeIndex++
-
-    let interval = setInterval(() => {
-      if (active_index == obj_ads.length - 1) {
-
-        flatListRef.current.scrollToIndex({
-          index: 0,
-          animation: true
-        });
-      }
-      else {
-
-        flatListRef.current.scrollToIndex({
-          index: active_index + 1,
-          animation: true
-        })
-
-
-      }
-    }, 2000)
-
-    return () => clearInterval(interval);
-
-  })
+		return () => clearInterval(interval);
+	}, [active_index, publicidades.length]);
 
   const open_rating_modal = (item) => {
 
@@ -176,42 +201,45 @@ useEffect(() => {
   }
 
 
-  // Render dot Indicador
-  const renderDotIndicators = () => {
-
-    return (
-      obj_ads.map((dot, index) => {
-
-        // if the active index == index 
-
-        if (active_index == index) {
-          return (<Text
-            key={index}
-            style={{
-              backgroundColor: '#1FFF62',
-              height: 10,
-              width: 10,
-              borderRadius: 5,
-              marginHorizontal: 2,
-              // opacity:0.5
-            }}> </Text>)
-        } else {
-          return (<Text
-            key={index}
-            style={{
-              backgroundColor: '#000000',
-              height: 10,
-              width: 10,
-              borderRadius: 5,
-              marginHorizontal: 2,
-              // opacity:0.5
-            }}> </Text>)
-
-        }
-
-      })
-    )
-  }
+	// Render dot Indicador
+	function renderDotIndicators() {
+		return publicidades.map((dot, index) => {
+			// if the active index == index
+			if (active_index === index) {
+				return (
+					<Text
+						key={index}
+						style={{
+							backgroundColor: '#1FFF62',
+							height: 10,
+							width: 10,
+							borderRadius: 5,
+							marginHorizontal: 2,
+							// opacity:0.5
+						}}
+					>
+						{' '}
+					</Text>
+				);
+			} else {
+				return (
+					<Text
+						key={index}
+						style={{
+							backgroundColor: '#000000',
+							height: 10,
+							width: 10,
+							borderRadius: 5,
+							marginHorizontal: 2,
+							// opacity:0.5
+						}}
+					>
+						{' '}
+					</Text>
+				);
+			}
+		});
+	}
 
   
   const set_rating = (element) => {
@@ -317,15 +345,13 @@ useEffect(() => {
         <Text style={{ color: 'white' }}>Promociones</Text>
 
         <FlatList
-          ref={flatListRef}
-          onScroll={scroll_carrousel}
-          pagingEnabled={true}
-          horizontal
-          data={obj_ads}
-          renderItem={renderItem}
-        >
-
-        </FlatList>
+			ref={flatListRef}
+			onScroll={scroll_carrousel}
+			pagingEnabled={true}
+			horizontal
+			data={publicidades}
+			renderItem={renderItem}
+		></FlatList>
 
         <View style={{ backgroundColor: '#676D75', opacity: 0.7, padding: 2, borderRadius: 20, flexDirection: 'row', position: 'absolute', top: '85%' }}>
           {renderDotIndicators()}

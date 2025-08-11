@@ -33,12 +33,17 @@ export default function CustomHeader() {
     }
 
     const showname = (name) => {
-
+        if (!name) return 'US';
+        
         const array_name = name.split(" ");
-
-        const formated_name = (array_name[0].charAt(0).toUpperCase() + array_name[1].charAt(0).toUpperCase())
-
-        return formated_name ?? 'US'
+        
+        // Handle single name or multiple names
+        const firstInitial = array_name[0]?.charAt(0)?.toUpperCase() || 'U';
+        const secondInitial = array_name[1]?.charAt(0)?.toUpperCase() || 'S';
+        
+        const formated_name = firstInitial + secondInitial;
+        
+        return formated_name;
     }
     return (
 

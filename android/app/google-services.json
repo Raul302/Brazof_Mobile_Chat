@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "62414882074",
+    "project_id": "brazof-a6f3d",
+    "storage_bucket": "brazof-a6f3d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:62414882074:android:04ad4873226d6942aa58a3",
+        "android_client_info": {
+          "package_name": "com.raul302.brazof"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxKWRKYFA4e_62202aSQTVkM-PnL9YEfE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

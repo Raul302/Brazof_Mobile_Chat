@@ -11,6 +11,7 @@ export const authConfig = {
   // api.brazof.space/api
 
 
+  url_picture:'https://api.brazof.space/api/storage/imagenes/',
   clientId: '2',
   clientSecret: 'f9r2NnZCcRdBkYnlWn4a2Xlq143RlQRKZJPnRCCn',
   business_api: 'https://api.brazof.space/api/',

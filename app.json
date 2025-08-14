@@ -9,16 +9,24 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.raul302.brazof",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-          "permissions": ["NFC"],
+      "permissions": [
+        "NFC",
+        "android.permission.NFC"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.raul302.brazof"
+      "package": "com.raul302.brazof",
+      "googleServicesFile":"./android/app/google-services.json"
     },
     "web": {
       "bundler": "metro",

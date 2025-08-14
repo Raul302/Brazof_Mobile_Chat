@@ -1,35 +1,49 @@
 import { useRoute } from "@react-navigation/native";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, ImageBackground, ScrollView, StyleSheet, Text, View } from "react-native";
+import { authConfig } from "../../Constants/authConfig";
+import { useOwnerProfile } from "../../Hooks/image_owner.hook";
+import { levels_host_hook } from "../../Hooks/levels_host_hook";
 
 
-export default function HomeIndex(  props  ) {
+export default function HomeIndex(props) {
 
 
-  
+  const { Owner_image }  = useOwnerProfile();
+
+
+
 
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
   const route = useRoute();
-  const { item } = route.params;
+  const { item, rating } = route.params;
 
+  console.log('Ratimg', rating.distribution)
+
+  const { host_name, medal, opinion_1, opinion_2, opinion_3 } = levels_host_hook()
 
 
   return (
     <View style={styles.container}>
 
+      <Text style={{color:'red'}}>
+        {/* { Owner_image(item?.empresa_organizadora) } */}
+      </Text>
       {/* div imageBackground */}
       <View style={{ backgroundColor: 'red', height: screenHeight / 2.8, width: screenWidth }}>
         <Image
           style={{ height: screenHeight / 2.8, width: screenWidth }}
-          source={require('../../assets/images/pal_norte_background.jpg')} />
+          source={{ uri:  authConfig.url_picture+item?.imagenes?.[0]?.nombre_archivo}}
+          // source={require('../../assets/images/pal_norte_background.jpg')}
+           />
       </View>
 
       {/* View contain Information */}
       <View style={{ marginTop: '-30%', borderRadius: 50, alignItems: 'center', justifyContent: 'center', height: screenHeight / 2, width: '90%' }}>
 
         {/* View container heigh */}
-        <View style={{ width: '95%', height: '100%' }}>
+        <View style={{ width: '95%', height: screenHeight/1.8}}>
           <View style={{ flex: 1.2 }}>
             <Text style={{ color: '#000' }}>
               <View style={{
@@ -48,22 +62,59 @@ export default function HomeIndex(  props  ) {
                   borderRadius: 20,
                   flex: 4, paddingTop: 10, paddingLeft: 20
                 }}>
-                  <Text style={{color:'#FFF',fontSize:24}}>Organizado por grupo FEMSA</Text>
+                  <Text style={{ color: '#FFF', fontSize: 24 }}>{item?.nombre}</Text>
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-                    <View>
-                      <Text style={{color:'#FFF'}}>4.1</Text>
+                  <Text style={{ color: '#FFF', fontSize: 24 }}> | Organizado por {item?.empresa_organizadora}</Text>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+
+
+
+
+                    <View
+                      key={'pressable_'}
+                      style={{ width: '30%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+
+                      <View key={'view_2_'}>
+                        <Image
+                          key={'image_'}
+                          source={require('../../assets/images/star.png')
+                          }
+                          style={{
+                            width: 18,
+                            height: 18,
+                            top: -1,
+                            zIndex: 99
+                          }}
+                        />
+                      </View>
+                      <View key={'view_3_'}>
+                        <Text style={{ color: '#FFFFFF' }}>
+                          {rating.average_rating}
+                        </Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={{color:'#FFF'}}>(25,300)</Text>
+
+
+                    <View style={{ width: '40%' }}>
+                      <Text style={{ color: '#FFF' }}>{rating.total_ratings} reviews</Text>
                     </View>
-                    <View>
-                      <Text style={{color:'#FFF'}}>SuperHost</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                      <Image
+                        style={{ height: 15, width: 15, }}
+                        tintColor={medal(rating)}
+                        source={require('../../assets/images/medal.png')} />
+                      <Text style={{ fontSize: 12, color: '#FFF' }}>
+                        {host_name(rating)}</Text>
                     </View>
                   </View>
                   {/* End div SPACE AROUND */}
-                  <View style={{ marginTop: 25,justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{color:'#FFF'}}>Direccion av guadalupe</Text>
+                  <View style={{ flexDirection: 'row', marginTop: 25, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image
+                      style={{ height: 30, width: 30, }}
+                      tintColor='#676D75'
+                      source={require('../../assets/images/ubication.png')} />
+                    <Text style={{ color: '#FFF' }}>{item.ubicacion}</Text>
                   </View>
 
 
@@ -73,25 +124,107 @@ export default function HomeIndex(  props  ) {
               </View>
             </Text>
           </View>
-          <View style={{ justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#000', flex: 1.5, flexDirection: 'column' }}>
-            <View style={{ width: '100%', borderColor: '#FFF', borderWidth: 2, alignItems: 'center', justifyContent: 'center', height: '33%' }}>
-              <Text >Row 1</Text>
+
+          {/* Opinion 1 */}
+
+          <View style={{ justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#000000ff', flexDirection: 'column' }}>
+            <ScrollView style={{ width: '100%', height: Dimensions.get('window').height / 3 }}>
+
+              <View style={{ flexDirection: 'row', borderColor: '#FFF', borderWidth: 2, justifyContent: 'center', }}>
+                <View style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }} >
+                  <View style={{ justifyContent: 'center', alignItems: 'center', width: '50%', height: '25%' }} >
+                    <ImageBackground
+                      style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+                      tintColor='#0F55E8'
+                      source={require('../../assets/images/back_opinion.png')}
+                    >
+                      <Image
+                        style={{ position: 'absolute', justifyContent: 'center', alignItems: 'center', height: 15, width: 15, }}
+                        tintColor={medal(rating)}
+                        source={require('../../assets/images/medal.png')} />
+                    </ImageBackground>
+                  </View>
+                </View>
+                <View style={{ flex: 2, padding: 10, alignItems: 'center', paddingRight: '15%' }} >
+                  <Text style={{ paddingBottom: 10, fontWeight: 600, color: '#FFF' }}>{item.nombre} is a {host_name(rating)}</Text>
+                  <Text style={{ color: '#FFF' }}>{opinion_1(host_name(rating))}</Text>
+
+                </View>
+
+
+
+                {/* Opinion 2  */}
+
+              </View>
+              <View style={{ flexDirection: 'row', borderColor: '#FFF', borderWidth: 2, justifyContent: 'center', }}>
+                <View style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }} >
+                  <View style={{ justifyContent: 'center', alignItems: 'center', width: '50%', height: '25%' }} >
+                    <ImageBackground
+                      style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+                      tintColor='#0F55E8'
+                      source={require('../../assets/images/back_opinion.png')}
+                    >
+                      <Image
+                        style={{ position: 'absolute', justifyContent: 'center', alignItems: 'center', height: 15, width: 15, }}
+                        tintColor={medal(rating)}
+                        source={require('../../assets/images/medal.png')} />
+                    </ImageBackground>
+                  </View>
+                </View>
+                <View style={{ flex: 2, padding: 10, alignItems: 'center', paddingRight: '15%' }} >
+                  <Text style={{ paddingBottom: 10, fontWeight: 600, color: '#FFF' }}>{item.nombre} is a {host_name(rating)}</Text>
+                  <Text style={{ color: '#FFF' }}>{opinion_2(host_name(rating))}</Text>
+
+                </View>
+
+
+
+
+
+              </View>
+              {/* Opinion 3  */}
+
+              {/* <View style={{ flexDirection: 'row', borderColor: '#FFF', borderWidth: 2, justifyContent: 'center', }}>
+              <View style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }} >
+                <View style={{ justifyContent: 'center', alignItems: 'center', width: '50%', height: '25%' }} >
+                  <ImageBackground
+                    style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+                    tintColor='#0F55E8'
+                    source={require('../../assets/images/back_opinion.png')}
+                  >
+                    <Image
+                      style={{ position: 'absolute', justifyContent: 'center', alignItems: 'center', height: 15, width: 15, }}
+                      tintColor={medal(rating)}
+                      source={require('../../assets/images/medal.png')} />
+                  </ImageBackground>
+                </View>
+              </View>
+              <View style={{ flex: 2, padding: 10, alignItems: 'center', paddingRight: '15%' }} >
+                <Text style={{ paddingBottom: 10, fontWeight: 600, color: '#FFF' }}>{host_name(rating)}</Text>
+                <Text style={{ color: '#FFF' }}>{opinion_3(rating)}</Text>
+
+              </View>
+
+
+
+
             </View>
 
-            <View style={{ width: '100%', borderColor: '#FFF', borderWidth: 2, alignItems: 'center', justifyContent: 'center', height: '33%' }}>
-              <Text >Row 2</Text>
-            </View>
+
+           */}
 
 
-            <View style={{ width: '100%', borderColor: '#FFF', borderWidth: 2, alignItems: 'center', justifyContent: 'center', height: '33%' }}>
-              <Text >Row 2</Text>
-            </View>
+            </ScrollView>
           </View>
+
         </View>
         <View style={{ backgroundColor: 'green', position: 'absolute', left: -0.5, top: -25, borderRadius: 50, height: 90, width: 90 }}>
           <Image
             style={{ height: 90, width: 90, borderRadius: 50 }}
-            source={require('../../assets/images/femsa.png')} />
+               source={{ uri:  Owner_image(item?.empresa_organizadora) }}
+
+            // source={require('../../assets/images/femsa.png')} 
+            />
         </View>
       </View>
     </View>

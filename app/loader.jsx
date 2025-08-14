@@ -15,6 +15,8 @@ export default function Loading() {
 // console.log('USER',user);
   useEffect(()=>{
 
+    console.log('ENTRO AL LOADER')
+
     // console.log('TOKEN',token)
 
     if(token ){

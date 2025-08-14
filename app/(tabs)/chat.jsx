@@ -80,7 +80,9 @@ useEffect(() => {
   }
 
   // Si todo bien, cargar datos
-     load_chats();
+  if(user.event_id&& user?.id_usuario){
+    load_chats();
+  }
 
 
 }, [isFocused, user])
@@ -97,7 +99,6 @@ const create_new_chat = async ( pulsera_b) => {
   }
   
    const ruta = `${authConfig.business_api}chats/open-or-create`;
-   console.log('RUTA',ruta)
 
     const { data: chatResponse } = await axios.post(ruta,obj, {
       headers: {
@@ -173,6 +174,8 @@ const create_new_chat = async ( pulsera_b) => {
           last_message,
         };
       } catch (err) {
+              Alert.alert(err.response?.data?.message || 'Error al cargar mensajes');
+
         console.warn(`Error en chat con ID ${profile.id_chat}:`, err);
         return null; // O puedes devolver el `profile` sin last_message
       }
@@ -185,7 +188,9 @@ const create_new_chat = async ( pulsera_b) => {
 
     set_conversations_formated(chats);
   } catch (error) {
+    Alert.alert(error.response?.data?.message || 'Error al cargar mensajes');
     console.error('Error cargando chats:', error);
+    Alert
     set_conversations_formated([]);
   } finally {
     set_loading(false);
@@ -227,7 +232,6 @@ const create_new_chat = async ( pulsera_b) => {
         const tag = await NfcManager.getTag();
         // console.log('Tag received:', tag);
         // console.log(' PAY ', tag.ndefMessage);
-        console.log('TAG',tag.id)
   
         // if(tag.ndefMessage == undefined){
         //   set_scanning(false)
@@ -263,7 +267,7 @@ const create_new_chat = async ( pulsera_b) => {
  
   const renderItem = ({ item }) => (
     <TouchableOpacity 
-    key={'touchable'+item.id_chat}
+    key={'touchable_x'+item.id_chat}
      onPress={() => {
       // console.log('ITEMX',item)
         navigation.navigate('individual_chat', { usuario_a: item.usuario_a , usuario_b: item.usuario_b , chat_id : item.id_chat });
@@ -272,14 +276,14 @@ const create_new_chat = async ( pulsera_b) => {
     style={styles.contactItem}>
 
       <View
-          key={'view_'+item.id_chat}
+          key={'view_x'+item.id_chat}
       style={{
         borderColor: '#1FFF62',
         borderWidth: 3,
         backgroundColor: '#FFFFFF', height: 50, width: 50, borderRadius: 100, justifyContent: 'center', alignItems: 'center'
       }}>
         <Text 
-            key={'text'+item.id_chat}
+            key={'text_x'+item.id_chat}
 style={{ fontWeight: '600', color: '#000000' }}>
           {item?.nombre_completo &&
             [showname(item?.nombre_completo)]

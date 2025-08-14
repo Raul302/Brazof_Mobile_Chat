@@ -5,13 +5,22 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Rating } from "react-native-ratings";
 import { authConfig } from "../../Constants/authConfig";
-import { AuthContext } from "../../context/AuthContext";
 import { fetchData, procesarImagenesEntidades } from "../../context/apiClient";
+import { AuthContext } from "../../context/AuthContext";
+import { usePushNotifications } from "../../PushNotifications";
 
 
 
 export default function HomeIndex() {
 
+  const { expoPushToken , notification } = usePushNotifications();
+  
+
+  const data  = JSON.stringify(notification, undefined , 2);
+
+
+  console.log('DATA ',data);
+  console.log('EXPO PUSH NOTIFICATION' , expoPushToken);
 
 
   const navigation = useNavigation();
@@ -162,6 +171,8 @@ useEffect(() => {
 					if (my_events && my_events.length > 0 && my_events[0].id_evento) {
 						cargarRatingsEventos(my_events);
 					} else {
+            set_my_events([])
+            set_loading(false)
 						console.log('Esperando eventos válidos antes de cargar ratings');
 					}
 
@@ -249,23 +260,19 @@ useEffect(() => {
   // UseEffect to move carrousel automatic
 
 	useEffect(() => {
-		if (publicidades.length === 0) return;
+		
+   if (publicidades.length === 0) return;
 
-		let interval = setInterval(() => {
-			if (active_index === publicidades.length - 1) {
-				flatListRef.current.scrollToIndex({
-					index: 0,
-					animation: true,
-				});
-			} else {
-				flatListRef.current.scrollToIndex({
-					index: active_index + 1,
-					animation: true,
-				});
-			}
-		}, 4000);
+  const interval = setInterval(() => {
+    if (flatListRef.current?.scrollToIndex) {
+      flatListRef.current.scrollToIndex({
+        index: (active_index + 1) % publicidades.length,
+        animated: true,
+      });
+    }
+  }, 4000);
 
-		return () => clearInterval(interval);
+  return () => clearInterval(interval);
 
 
 
@@ -528,6 +535,9 @@ useEffect(() => {
         </View>
       </View>
 
+      <Text style={{color:'white'}} selectable>{expoPushToken || "Loading..."}</Text>
+            <Text style={{color:'white'}} > TOKEN PUSH DATA { data }</Text>
+
 
       <ScrollView style={{ marginTop: '10%' }}>
 
@@ -548,8 +558,9 @@ useEffect(() => {
                   key={'imagebackground_' + index} 
                   source={
                   scroll.cha
-                    ? { uri: scroll.imagenes[0].url }
-                    : require('../../assets/images/baile.jpg')
+                  
+                    ? { uri:  authConfig.url_picture+scroll?.imagenes?.[0]?.nombre_archivo }
+                    : { uri:  authConfig.url_picture+scroll?.imagenes?.[0]?.nombre_archivo }
                 }
  resizeMode="cover" style={styles.background_img}>
 

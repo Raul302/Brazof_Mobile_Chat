@@ -1,5 +1,6 @@
+import { useIsFocused } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { Button, Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -9,14 +10,44 @@ export default function ProfileIndex() {
 
   const navigation = useNavigation();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     // await logout();
     router.replace('/closing_session'); // o simplemente 'login' según tu estructura de rutas
   }
 
 
+  
+
 
   const { logout, user } = useContext(AuthContext);
+  const isFocused = useIsFocused()
+  
+
+  useEffect(() => {
+    if (!isFocused) return;
+  
+    // Verificar que user y brand estén definidos
+    if (!user || !user.brand) return;
+  
+    // Validar si tiene pulsera/marca
+    if (user.brand.length === 0) {
+      router.replace('/nfc')
+      // Alert.alert(
+      //   'Acceso restringido',
+      //   'No cumples con los requisitos para acceder a esta sección.',
+      // )
+      return;
+    }
+  
+    // // Si todo bien, cargar datos
+    // if(user.event_id&& user?.id_usuario){
+    //   load_chats();
+    // }
+  
+  
+  }, [isFocused, user])
+  
+
   
   return (
 

@@ -1,4 +1,4 @@
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'; // <-- Agregado
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useIsFocused } from '@react-navigation/native';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -7,6 +7,7 @@ import { useLocalSearchParams } from 'expo-router';
 import _ from 'lodash';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -16,7 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { authConfig } from '../../Constants/authConfig';
 import { AuthContext } from '../../context/AuthContext';
@@ -24,41 +25,51 @@ import { AuthContext } from '../../context/AuthContext';
 dayjs.extend(relativeTime);
 
 export default function individual_chat() {
-  const { token, user } = useContext(AuthContext);
+  const { token, user, socket } = useContext(AuthContext);
   const { usuario_a, usuario_b, chat_id } = useLocalSearchParams();
   const [messages, set_messages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const flatListRef = useRef(null);
-  const tabBarHeight = useBottomTabBarHeight(); // <-- Obtener altura del TabBar
+  const tabBarHeight = useBottomTabBarHeight();
+  const isFocused = useIsFocused();
 
-
-
-
-  const isFocused = useIsFocused()
-  
+  // Cargar mensajes cuando el chat está enfocado
   useEffect(() => {
-   load_messages_from_conversation(chat_id)
-  }, [isFocused])
-;
+    load_messages_from_conversation(chat_id);
+  }, [isFocused]);
+
+  // Escuchar mensajes entrantes por socket
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('nuevo_mensaje', (mensaje) => {
+      set_messages((prev) => [...prev, mensaje]);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    return () => {
+      socket.off('nuevo_mensaje');
+    };
+  }, [socket]);
 
   const load_messages_from_conversation = async (chat_id) => {
-
-    // console.log('MANDE CARGAR MENSAJES');
     try {
       const ruta = `${authConfig.business_api}mensajes/chat/${chat_id}?chat_id=${chat_id}`;
       const { data: chatResponse } = await axios.get(ruta, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
       });
       const conversatmessages = _.orderBy(chatResponse.data, 'timestamp', 'ASC');
       set_messages(conversatmessages);
-    } catch (error) {
 
-        Alert.alert(error.response.data.message)
-      // console.log('ERROR INDIVIDUAL CHATS', error);
+      console.log('HOLA ejecute load messages',)
+    } catch (error) {
+      Alert.alert(error.response?.data?.message || 'Error al cargar mensajes');
     }
   };
 
@@ -76,10 +87,21 @@ export default function individual_chat() {
       await axios.post(`${authConfig.business_api}mensajes`, obj, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
       });
+
+        await axios.post('http://138.68.43.245:3000/mensajes', obj, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+      
+      // Emitir evento para notificar al destinatario en tiempo real
+      socket?.emit('mensaje_enviado', obj);
 
       setNewMessage('');
       Keyboard.dismiss();
@@ -87,25 +109,29 @@ export default function individual_chat() {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-
     } catch (error) {
       console.log('Error al enviar mensaje:', error);
+      Alert.alert('Error al enviar mensaje');
     }
   };
 
-  const renderItem = ({ item }) => {
-
-          // console.log('Convertsatmessages',item)
+  const renderItem = ({ item , index }) => {
     const isMe = item.id_remitente === user.id_usuario;
     return (
       <View
+      key={'superview_' + index}
         style={[
           styles.messageContainer,
           isMe ? styles.messageRight : styles.messageLeft,
         ]}
       >
-        <Text style={styles.messageText}>{item.contenido}</Text>
-        <Text style={styles.messageTime}>
+        <Text 
+              key={'text_super_view' + index}
+style={styles.messageText}>{item.contenido}</Text>
+        <Text 
+                      key={'text_super_view_date_time' + index}
+
+style={styles.messageTime}>
           {dayjs(item.timestamp).subtract(6, 'hour').fromNow()}
         </Text>
       </View>
@@ -123,8 +149,8 @@ export default function individual_chat() {
           ref={flatListRef}
           data={messages}
           renderItem={renderItem}
-          keyExtractor={item => item.id_mensaje?.toString()}
-          contentContainerStyle={[styles.messagesList, { paddingBottom: tabBarHeight + 70 }]} // <-- Padding dinámico
+          keyExtractor={(item) => item.id_mensaje?.toString()}
+          contentContainerStyle={[styles.messagesList, { paddingBottom: tabBarHeight + 70 }]}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
@@ -146,7 +172,6 @@ export default function individual_chat() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: {

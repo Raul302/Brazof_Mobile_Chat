@@ -9,7 +9,9 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "autoIncrement": true
@@ -24,9 +26,6 @@
     }
   },
   "submit": {
-    "production": {},
-	"eas": {
-	  "projectId": "9ee8c087-1fd2-4b70-aa56-f7e227c69f68"
-	}
+    "production": {}
   }
 }
